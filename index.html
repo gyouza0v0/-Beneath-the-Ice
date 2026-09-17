@@ -5,10 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Beneath the Ice</title>
 <style>
+  /* ============================================================
+     自定义字体
+     ============================================================ */
+  @font-face {
+    font-family: 'MyFont';
+    src: url('fonts/myfont.subset.woff2') format('woff2');
+    font-display: swap;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* 让按钮、输入框也继承页面字体 */
+  button, input, select, textarea { font-family: inherit; }
+
   html, body { min-height: 100%; }
   body {
-    font-family: -apple-system, "Microsoft YaHei", sans-serif;
+    font-family: "MyFont", "Microsoft YaHei", sans-serif;
     color: #eee;
     display: flex;
     flex-direction: column;
@@ -18,24 +31,20 @@
     background-attachment: fixed;
   }
 
-    /* ============ 下雪画布 ============ */
+  /* ============ 下雪画布 ============ */
   #snowCanvas {
     position: fixed;
     top: 0; left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none;   /* 不挡鼠标点击，下面的按钮都能点 */
-    z-index: 1;             /* 在背景之上、弹窗之下 */
+    pointer-events: none;
+    z-index: 1;
   }
-
-  /* 让标题、按钮、棋盘都浮在雪花上面 */
-  .title-img,
-  .board-tabs,
-  .board-wrap,
-  .controls {
+  .title-img, .board-tabs, .board-wrap, .controls {
     position: relative;
     z-index: 2;
   }
+
   /* ============ 标题图 ============ */
   .title-img {
     display: block;
@@ -46,12 +55,17 @@
   }
 
   /* ============ 棋盘切换按钮 ============ */
-  .board-tabs { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
+  .board-tabs {
+    display: flex; gap: 8px; margin-bottom: 10px;
+    flex-wrap: wrap; justify-content: center;
+  }
   .board-tabs button {
     padding: 8px 16px; border: none; border-radius: 6px;
-    background: rgba(0,0,0,0.55); color: #fff; font-size: 14px; cursor: pointer;
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 16px; cursor: pointer;
   }
-  .board-tabs button.active { background: #570b0b; color: #000; font-weight: bold; }
+  .board-tabs button.active {
+    background: #570b0b; color: #fff; font-weight: bold;
+  }
 
   /* ============ 棋盘容器（横版 A4）============ */
   .board-wrap {
@@ -78,25 +92,13 @@
     z-index: 2;
   }
 
-  /* ============ 格子：只保留虚线，其他透明 ============ */
+  /* ============ 格子 ============ */
   .cell {
     border-radius: 4px;
     background: transparent;
     border: 1px dashed rgba(255,255,255,0.10);
   }
-  /* 关掉鼠标悬停高亮 */
-  .cell:hover { background: transparent; }
-
-    /* 起点：透明 */
-  .cell.start {
-    background: transparent;
-    border: 1px dashed rgba(255,255,255,0.10);
-  }
-  /* 终点：透明 */
-  .cell.end {
-    background: transparent;
-    border: 1px dashed rgba(255,255,255,0.10);
-  }
+  .cell.start, .cell.end { border: 1px dashed rgba(255,255,255,0.10); }
 
   /* ============ 棋子 ============ */
   .player-token {
@@ -116,17 +118,29 @@
     flex-wrap: wrap; justify-content: center; margin-bottom: 14px;
   }
   .dice-btn {
-    padding: 12px 28px; font-size: 18px; font-weight: bold;
-    border: none; border-radius: 10px; background: #5b0e0e; color: #000;
-    cursor: pointer; touch-action: manipulation;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s;
   }
-  .dice-btn:disabled { opacity: 0.5; }
+  .dice-btn-img {
+    display: block;
+    width: 100px;         /* 按钮图宽度，想调大改这个数字 */
+    height: auto;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+  }
+  .dice-btn:hover .dice-btn-img { transform: scale(1.04); }
+  .dice-btn:active .dice-btn-img { transform: scale(0.96); }
+  .dice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .dice-img {
     width: 64px; height: 64px; object-fit: contain;
     background: rgba(0,0,0,0.35); border-radius: 8px;
   }
-
   .bag-btn {
     background: transparent; border: none; padding: 0;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -149,23 +163,66 @@
   .modal-box {
     background: #2a2a40; border-radius: 16px; padding: 20px;
     max-width: 360px; width: 100%; text-align: center;
-    max-height: 85vh; overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     position: relative;
   }
-  .modal-box img.card-img { max-width: 100%; border-radius: 10px; margin-bottom: 12px; }
-  .modal-box h2 { font-size: 18px; margin-bottom: 10px; }
-  .modal-box p { font-size: 14px; line-height: 1.6; margin-bottom: 14px; color: #ccc; }
   .modal-box .ok-btn {
     padding: 10px 24px; border: none; border-radius: 8px;
-    background: #530808; color: #000; font-weight: bold; cursor: pointer;
+    background: #530808; color: #fff; font-weight: bold; cursor: pointer;
   }
 
-  /* ============ 背包弹窗（pack2.png 做底图）============ */
+  /* ============ 卡片弹窗：图片做底图，文字叠在上面 ============ */
+  .card-modal-box {
+    background: transparent;
+    padding: 0;
+    max-width: none;
+    width: min(92vw, 420px);
+    position: relative;
+    box-shadow: none;
+  }
+  .card-bg-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  }
+  .card-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20% 12% 15% 12%;
+    text-align: center;
+  }
+  .card-content h2 {
+    font-size: 24px;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .card-content p {
+    font-size: 17px;
+    color: #fff;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .card-content .ok-btn {
+    padding: 8px 22px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  /* ============ 背包弹窗 ============ */
   .bag-modal-box {
     background: transparent; padding: 0;
     max-width: none; width: min(92vw, 520px);
-    position: relative; overflow: visible; box-shadow: none;
+    position: relative; box-shadow: none;
   }
   .bag-bg-img {
     display: block; width: 100%; height: auto;
@@ -179,26 +236,167 @@
     overflow-y: auto;
   }
   .bag-content h2 {
-    font-size: 16px; margin-bottom: 8px; color: #333;
+    font-size: 18px; margin-bottom: 8px; color: #333;
     text-shadow: 0 1px 2px rgba(255,255,255,0.5);
   }
   .bag-list { width: 100%; flex: 1; overflow-y: auto; padding: 4px; }
-    .bag-item {
+  .bag-item {
     padding: 6px 10px; background: rgba(255,255,255,0.75);
     border-radius: 6px; margin-bottom: 4px;
-    font-size: 13px; color: #222; text-align: left;
+    font-size: 15px; color: #222; text-align: left;
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
   }
   .bag-item:hover { background: rgba(255,255,255,0.98); }
   .bag-item:active { transform: scale(0.98); }
-  .bag-empty { color: #666; font-size: 13px; text-align: center; margin-top: 20px; }
+  .bag-empty { color: #666; font-size: 15px; text-align: center; margin-top: 20px; }
   .bag-close-btn {
     margin-top: 8px; padding: 6px 20px; border: none; border-radius: 6px;
-    background: rgba(0,0,0,0.7); color: #fff; font-size: 13px; cursor: pointer;
+    background: rgba(0,0,0,0.7); color: #fff; font-size: 15px; cursor: pointer;
   }
-    /* 物品介绍弹窗 */
-    .item-modal-box {
+
+  /* ============ 饥饿 / 口渴 状态条 ============ */
+  .status-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 140px;
+    flex-shrink: 0;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+  }
+    .bar-icon {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
+  }
+  .bar-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(0,0,0,0.55);
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .bar-fill {
+    height: 100%;
+    width: 100%;
+    transition: width 0.4s ease;
+  }
+  .bar-fill.hunger { background: linear-gradient(90deg, #a5623e, #a19377); }
+  .bar-fill.thirst { background: linear-gradient(90deg, #476587, #9dafbe); }
+  .bar-num {
+    min-width: 26px;
+    text-align: right;
+    color: #eee;
+    font-size: 12px;
+    text-shadow: 0 1px 3px #000;
+  }
+
+  /* ============ 暗角 ============ */
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    background: radial-gradient(
+      circle at center,
+      transparent 0%,
+      transparent 20%,
+      rgba(0,0,0,0.5) 55%,
+      rgba(0,0,0,0.95) 100%
+    );
+  }
+
+  /* ============ 死亡遮罩 ============ */
+  .death-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    z-index: 9999;
+  }
+  .death-overlay.show { display: flex; }
+  .death-text {
+    color: #c31414;
+    font-size: 32px;
+    letter-spacing: 6px;
+    font-weight: bold;
+    text-align: center;
+    padding: 0 20px;
+    text-shadow: 0 0 20px #ff0000, 0 0 40px #8b0000;
+    animation: deathFadeIn 3s ease forwards;
+    opacity: 0;
+  }
+  @keyframes deathFadeIn {
+    from { opacity: 0; transform: scale(1.1); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ============ 重开按钮 ============ */
+  .restart-btn {
+    color: #c31414;
+    font-size: 16px;
+    letter-spacing: 4px;
+    font-weight: bold;
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-shadow: 0 0 10px #ff0000, 0 0 20px #8b0000;
+    transition: all 0.3s;
+    font-family: inherit;
+  }
+  .restart-btn:hover {
+    color: #ff3333;
+    text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #8b0000;
+    transform: scale(1.05);
+  }
+
+  /* ============ 重开时的白色发光字 ============ */
+  .revive-text {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 28px;
+    letter-spacing: 5px;
+    text-align: center;
+    text-shadow:
+      0 0 10px #fff,
+      0 0 20px #fff,
+      0 0 40px #aaddff,
+      0 0 60px #aaddff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10000;
+    padding: 0 20px;
+    width: 100%;
+    max-width: 90vw;
+  }
+  .revive-text.show { animation: reviveFade 4s ease forwards; }
+  @keyframes reviveFade {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    15%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ============ 物品介绍弹窗 ============ */
+  .item-modal-box {
     background: transparent;
     border-radius: 0;
     padding: 16px;
@@ -207,21 +405,64 @@
     text-align: center;
     box-shadow: none;
   }
-    .item-modal-box .item-img {
+  .item-modal-box .item-img {
     display: block;
     width: 100px;
     height: 100px;
     object-fit: contain;
-    margin: 0 auto 12px auto;   /* 上0 左右auto 下12px → 水平居中 */
+    margin: 0 auto 12px auto;
     border-radius: 10px;
     filter: drop-shadow(0 6px 20px rgba(0,0,0,0.8));
   }
   .item-modal-box h2 {
-    font-size: 20px;
+    font-size: 22px;
     color: #fff;
     text-align: center;
     margin-bottom: 12px;
     text-shadow: 0 2px 6px #000, 0 0 12px rgba(0,0,0,0.9);
+  }
+  .item-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* ============ 图片按钮通用样式 ============ */
+  .img-btn {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+    font-family: inherit;
+  }
+  .img-btn img {
+    display: block;
+    width: 55px;            /* 按钮图宽度，想调大改这里 */
+    height: auto;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));
+  }
+  .img-btn:hover img { transform: scale(1.06); }
+  .img-btn:active img { transform: scale(0.94); }
+
+  /* 使用按钮默认隐藏，有食物效果时才显示 */
+  .item-actions .use-btn {
+    display: none;
+  }
+
+  /* ============ 手机端紧凑布局 ============ */
+  @media (max-width: 480px) {
+    .status-bars { width: 110px; }
+    .bar-row { font-size: 11px; gap: 3px; }
+    .bar-icon { font-size: 12px; }
+    .bar-num { font-size: 11px; min-width: 22px; }
+    .death-text { font-size: 22px; letter-spacing: 4px; }
   }
 </style>
 </head>
@@ -229,7 +470,7 @@
 
 <!-- 标题图 -->
 <img class="title-img" src="img/biaoti.png" alt="标题"
-     onerror="this.outerHTML='<h1 style=&quot;font-size:22px;margin:8px 0;text-shadow:0 2px 6px #000;&quot;>🎲 企划棋盘</h1>'">
+     onerror="this.outerHTML='<h1 style=&quot;font-size:22px;margin:8px 0;text-shadow:0 2px 6px #000;&quot;>Beneath the Ice</h1>'">
 
 <div class="board-tabs" id="boardTabs"></div>
 
@@ -240,7 +481,21 @@
 </div>
 
 <div class="controls">
-  <button class="dice-btn" id="rollBtn">投掷</button>
+  <div class="status-bars">
+    <div class="bar-row">
+      <img class="bar-icon" src="img/hunger.png" alt="饥饿">
+      <div class="bar-track"><div class="bar-fill hunger" id="hungerBar"></div></div>
+      <span class="bar-num" id="hungerNum">100</span>
+    </div>
+    <div class="bar-row">
+      <img class="bar-icon" src="img/thirst.png" alt="口渴">
+      <div class="bar-track"><div class="bar-fill thirst" id="thirstBar"></div></div>
+      <span class="bar-num" id="thirstNum">100</span>
+    </div>
+  </div>
+<button class="dice-btn" id="rollBtn" title="投掷">
+  <img class="dice-btn-img" src="img/roll.png" alt="投掷">
+</button>
   <img class="dice-img" id="diceImg" src="" alt="?" onerror="this.style.display='none'">
   <button class="bag-btn" id="bagBtn" title="背包">
     <img class="bag-icon" src="img/pack1.png" alt="背包">
@@ -250,13 +505,17 @@
 <!-- 下雪效果画布 -->
 <canvas id="snowCanvas"></canvas>
 
-<!-- 卡片弹窗 -->
+<!-- 卡片弹窗（获得奖励 / 遭遇危险）-->
 <div class="modal-mask" id="cardModal">
-  <div class="modal-box">
-    <img class="card-img" id="cardImg" src="" alt="" onerror="this.style.display='none'">
-    <h2 id="cardTitle"></h2>
-    <p id="cardDesc"></p>
-    <button class="ok-btn" onclick="closeModal('cardModal')">知道了</button>
+  <div class="modal-box card-modal-box">
+    <img class="card-bg-img" id="cardImg" src="" alt="" onerror="this.style.display='none'">
+    <div class="card-content">
+      <h2 id="cardTitle"></h2>
+      <p id="cardDesc"></p>
+      <button class="img-btn" onclick="closeModal('cardModal')">
+  <img src="img/close.png" alt="关闭">
+</button>
+    </div>
   </div>
 </div>
 
@@ -268,20 +527,42 @@
     <div class="bag-content">
       <h2>我的背包</h2>
       <div class="bag-list" id="bagList"></div>
-      <button class="bag-close-btn" onclick="closeModal('bagModal')">关闭</button>
+      <button class="img-btn" onclick="closeModal('bagModal')">
+  <img src="img/close.png" alt="关闭">
+</button>
     </div>
   </div>
 </div>
+
 <!-- 物品介绍弹窗 -->
 <div class="modal-mask" id="itemModal">
   <div class="modal-box item-modal-box">
     <img class="item-img" id="itemImg" src="" alt=""
          onerror="this.style.display='none'; document.getElementById('itemFallback').style.display='block';">
-    <p id="itemFallback" style="display:none; color:#aaa; margin-bottom:14px;">这个道具还没有介绍图</p>
+    <p id="itemFallback" style="display:none; color:#fff; text-shadow:0 2px 6px #000; margin-bottom:14px;">这个道具还没有介绍图</p>
     <h2 id="itemName"></h2>
-    <button class="ok-btn" onclick="closeModal('itemModal')">关闭</button>
+    <div class="item-actions">
+      <button class="img-btn use-btn" id="useItemBtn" onclick="useCurrentItem()">
+        <img src="img/use.png" alt="使用">
+      </button>
+      <button class="img-btn" onclick="closeModal('itemModal')">
+        <img src="img/close.png" alt="关闭">
+      </button>
+    </div>
   </div>
 </div>
+
+<!-- 低状态暗角 -->
+<div class="vignette" id="vignette"></div>
+
+<!-- 死亡遮罩 -->
+<div class="death-overlay" id="deathOverlay">
+  <p class="death-text">有点不甘心.....</p>
+  <button class="restart-btn" id="restartBtn">重新开始</button>
+</div>
+
+<!-- 重开时的白色发光字 -->
+<p class="revive-text" id="reviveText">刚刚好像做了一场噩梦...</p>
 
 <script>
 /* ============================================================
@@ -294,53 +575,59 @@ const IMG = {
     4: 'img/dice4.png', 5: 'img/dice5.png', 6: 'img/dice6.png'
   },
   cards: {
-    yellow: 'img/card_yellow.png',
-    purple: 'img/card_purple.png',
-    red: 'img/card_red.png'
+    yellow: 'img/card_yellow.jpg',
+    purple: 'img/card_purple.jpg',
+    red:    'img/card_red.jpg'
   }
 };
 
 /* ============================================================
    每个棋盘独立的随机池
-   下标 0 = 棋盘一，下标 1 = 棋盘二，下标 2 = 棋盘三
-   改道具名直接改引号里的文字；增删数量就增删整项
    ============================================================ */
 const REWARD_POOLS = [
-  // —— 棋盘一 的奖励池（黄色格子）——
-  ['净水片', '暖宝宝', '打火机', '压缩饼干', '瓶装水', '盒饭','卫星电话'],
-  // —— 棋盘二 的奖励池 ——
-  ['罐头', '能量棒', '压缩饼干', '毛线帽', '围巾', '羽绒服','抗生素','巧克力','雪地摩托钥匙'],
-  // —— 棋盘三 的奖励池 ——
-  ['绷带', '酒精', '毛毯', '罐头', '瓶装水', '急救包','遗留的路线图']
+  ['净水片', '暖宝宝', '打火机', '压缩饼干', '瓶装水', '盒饭', '卫星电话', '电工胶带', '废弃铁料'],
+  ['罐头', '能量棒', '压缩饼干', '毛线帽', '围巾', '羽绒服', '抗生素', '巧克力', '雪地摩托钥匙', '旧沙发', '塑料凳', '废弃木料'],
+  ['绷带', '酒精', '毛毯', '罐头', '瓶装水', '急救包', '遗留的路线图', '蜡烛']
 ];
 
 const EVENT_POOLS = [
-  // —— 棋盘一 的事件池（紫色格子）——
   ['水塔维修日志碎片'],
-  // —— 棋盘二 的事件池 ——
   ['某户人家的日记', '家庭合照', '木雕', '拍立得'],
-  // —— 棋盘三 的事件池 ——
-  ['圣经', '儿童画',]
+  ['圣经', '儿童画']
 ];
+/* ============================================================
+   食物 / 饮水效果表
+   格式：'道具名': { hunger: 数值, thirst: 数值 }
+   想改恢复量直接改数字；想加新食物照抄一行
+   ============================================================ */
+const FOOD_EFFECTS = {
+  // 食物类（恢复饥饿）
+  '压缩饼干': { hunger: 30 },
+  '盒饭':     { hunger: 45 },
+  '罐头':     { hunger: 35 },
+  '能量棒':   { hunger: 25 },
+  '巧克力':   { hunger: 20 },
+
+  // 水类（恢复口渴）
+  '瓶装水':   { thirst: 40 },
+  '净水片':   { thirst: 25 },
+
+  // 混合类
+  '急救包':   { hunger: 15, thirst: 15 },
+};
 
 /* ============================================================
    棋盘数据：3 个棋盘，每个 25 格
-   索引 0 = 起点，索引 24 = 终点
-   color 取值：'yellow'(奖励) 'purple'(事件) 'red'(惩罚) 'white'(无事)
-   effect 可以是：
-     { type: 'none' }                     无事发生
-     { type: 'item' }                     随机从池子里抽一个道具（推荐）
-     { type: 'step', value: -1 }          下一次投骰子后步数 -1（正数则 +N）
    ============================================================ */
 const BOARDS = [
   {
     name: '水塔',
     cells: [
-      { color: 'white',  effect: { type: 'none' } },                       // 0 起点
+      { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'purple', effect: { type: 'item' } },
       { color: 'red',    effect: { type: 'step', value: -1 } },
-      { color: 'yellow',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'red',    effect: { type: 'step', value: -2 } },
       { color: 'yellow', effect: { type: 'item' } },
@@ -360,7 +647,7 @@ const BOARDS = [
       { color: 'red',    effect: { type: 'step', value: -2 } },
       { color: 'white',  effect: { type: 'none' } },
       { color: 'purple', effect: { type: 'item' } },
-      { color: 'white',  effect: { type: 'none' } }                        // 24 终点
+      { color: 'white',  effect: { type: 'none' } }
     ]
   },
   {
@@ -426,16 +713,18 @@ const BOARDS = [
 ];
 
 /* ============================================================
-   游戏状态
+   游戏状态 + 存档
    ============================================================ */
 let currentBoardIndex = 0;
 let playerPos = 0;
 let inventory = {};
 let nextStepModifier = 0;
 let isMoving = false;
-/* ============================================================
-   存档：把游戏进度存到浏览器本地
-   ============================================================ */
+let hunger = 100;
+let thirst = 100;
+let isDead = false;
+let currentItemName = '';   // 当前打开介绍图的物品名
+
 const SAVE_KEY = 'boardGameSave_v1';
 
 function saveGame() {
@@ -443,7 +732,10 @@ function saveGame() {
     boardIndex: currentBoardIndex,
     pos: playerPos,
     bag: inventory,
-    stepMod: nextStepModifier
+    stepMod: nextStepModifier,
+    hunger: hunger,
+    thirst: thirst,
+    isDead: isDead
   };
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -461,6 +753,9 @@ function loadGame() {
     playerPos = data.pos || 0;
     inventory = data.bag || {};
     nextStepModifier = data.stepMod || 0;
+    hunger = (typeof data.hunger === 'number') ? data.hunger : 100;
+    thirst = (typeof data.thirst === 'number') ? data.thirst : 100;
+    isDead = !!data.isDead;
     return true;
   } catch (e) {
     console.warn('读档失败：', e);
@@ -468,6 +763,9 @@ function loadGame() {
   }
 }
 
+/* ============================================================
+   DOM 引用
+   ============================================================ */
 const boardTabs = document.getElementById('boardTabs');
 const boardGrid = document.getElementById('boardGrid');
 const boardBg = document.getElementById('boardBg');
@@ -496,11 +794,6 @@ function switchBoard(index) {
 
 /* ============================================================
    25 格蛇形路径（5 列 × 5 行）
-   0  1  2  3  4
-   9  8  7  6  5
-   10 11 12 13 14
-   19 18 17 16 15
-   20 21 22 23 24
    ============================================================ */
 const CELL_ORDER = [
   [1,1],[1,2],[1,3],[1,4],[1,5],
@@ -535,7 +828,6 @@ function renderBoard() {
   }
 }
 
-/* 棋子位置：按格子中心百分比 */
 function updatePlayerToken() {
   const pos = CELL_ORDER[playerPos];
   const row = pos[0], col = pos[1];
@@ -547,11 +839,7 @@ function updatePlayerToken() {
    投骰子
    ============================================================ */
 rollBtn.onclick = () => {
-  if (isMoving) return;
-  if (playerPos >= 24) {
-    alert('该区域已探索完毕');
-    return;
-  }
+  if (isMoving || isDead) return;
   isMoving = true;
   rollBtn.disabled = true;
 
@@ -563,20 +851,20 @@ rollBtn.onclick = () => {
   nextStepModifier = 0;
   if (steps < 1) steps = 1;
 
-  const oldPos = playerPos;
-  const targetPos = Math.min(oldPos + steps, 24);
-
-  let step = oldPos;
+  // 无限循环：走完 25 格（索引 0~24）就绕回 0
+  const TOTAL = 25;
+  let moved = 0;
   const timer = setInterval(() => {
-    if (step < targetPos) {
-      step++;
-      playerPos = step;
+    if (moved < steps) {
+      moved++;
+      playerPos = (playerPos + 1) % TOTAL;
       updatePlayerToken();
     } else {
       clearInterval(timer);
       isMoving = false;
       rollBtn.disabled = false;
       triggerCellEffect(playerPos);
+      decreaseStats();
       saveGame();
     }
   }, 280);
@@ -593,12 +881,10 @@ function triggerCellEffect(pos) {
   const effect = cell.effect;
 
   if (effect.type === 'item') {
-    // 按格子颜色选池子，再按当前棋盘编号选具体池
     let pool;
     if (cell.color === 'yellow')      pool = REWARD_POOLS[currentBoardIndex];
     else if (cell.color === 'purple') pool = EVENT_POOLS[currentBoardIndex];
 
-    // 从池子里随机抽一个
     let name;
     if (pool && pool.length > 0) {
       name = pool[Math.floor(Math.random() * pool.length)];
@@ -618,7 +904,7 @@ function triggerCellEffect(pos) {
 }
 
 /* ============================================================
-   弹窗
+   卡片弹窗
    ============================================================ */
 function showCard(color, title, desc) {
   document.getElementById('cardTitle').textContent = title;
@@ -633,7 +919,72 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('show');
 }
 
+/* ============================================================
+   饥饿 / 口渴系统
+   ============================================================ */
+function decreaseStats() {
+  if (isDead) return;
+  // 每次投骰子，饥饿和口渴各随机降 2~5
+  hunger = Math.max(0, hunger - (Math.floor(Math.random() * 4) + 2));
+  thirst = Math.max(0, thirst - (Math.floor(Math.random() * 4) + 2));
+  updateStatusBars();
+  checkDeath();
+}
+
+function updateStatusBars() {
+  const hungerBar = document.getElementById('hungerBar');
+  const thirstBar = document.getElementById('thirstBar');
+  const hungerNum = document.getElementById('hungerNum');
+  const thirstNum = document.getElementById('thirstNum');
+
+  hungerBar.style.width = hunger + '%';
+  thirstBar.style.width = thirst + '%';
+  hungerNum.textContent = Math.ceil(hunger);
+  thirstNum.textContent = Math.ceil(thirst);
+
+  // 暗角：50 → 0 每降一点就暗一点
+  const minV = Math.min(hunger, thirst);
+  const vignette = document.getElementById('vignette');
+
+  if (minV <= 0) {
+    vignette.style.opacity = 0;
+  } else if (minV >= 50) {
+    vignette.style.opacity = 0;
+  } else if (minV >= 10) {
+    const t = (50 - minV) / 40;
+    vignette.style.opacity = (t * 0.95).toFixed(3);
+  } else {
+    const t = (10 - minV) / 10;
+    vignette.style.opacity = (0.95 + t * 0.05).toFixed(3);
+  }
+}
+
+function checkDeath() {
+  if (isDead) {
+    rollBtn.disabled = true;
+    document.getElementById('vignette').style.opacity = 0;
+    document.getElementById('deathOverlay').classList.add('show');
+    return;
+  }
+  if (Math.ceil(hunger) <= 0 || Math.ceil(thirst) <= 0) {
+    isDead = true;
+    rollBtn.disabled = true;
+    document.getElementById('vignette').style.opacity = 0;
+    document.getElementById('deathOverlay').classList.add('show');
+    saveGame();
+  }
+}
+
+/* ============================================================
+   背包
+   ============================================================ */
 bagBtn.onclick = () => {
+  refreshBagList();
+  document.getElementById('bagModal').classList.add('show');
+};
+
+/* 刷新背包列表（用道具后会重新调用）*/
+function refreshBagList() {
   const list = document.getElementById('bagList');
   const entries = Object.entries(inventory);
 
@@ -643,46 +994,108 @@ bagBtn.onclick = () => {
     list.innerHTML = entries.map(([name, count], i) =>
       `<div class="bag-item" data-name="${name}">${i + 1}. ${name} × ${count}</div>`
     ).join('');
-    // 给每个物品加点击 → 弹出介绍图
     list.querySelectorAll('.bag-item').forEach(el => {
       el.onclick = () => showItem(el.dataset.name);
     });
   }
-  document.getElementById('bagModal').classList.add('show');
-};
+}
 
-/* 弹出物品介绍图 */
+/* 物品介绍弹窗 */
 function showItem(name) {
+  currentItemName = name;
   document.getElementById('itemName').textContent = name;
 
   const img = document.getElementById('itemImg');
   const fallback = document.getElementById('itemFallback');
 
-  // 每次打开都重置一下状态
   img.style.display = 'block';
   fallback.style.display = 'none';
   img.src = 'img/items/' + encodeURIComponent(name) + '.png';
 
+  // 是否是能吃的食物？是就显示「使用」按钮
+  const useBtn = document.getElementById('useItemBtn');
+  if (FOOD_EFFECTS[name]) {
+    useBtn.style.display = 'flex';
+  } else {
+    useBtn.style.display = 'none';
+  }
+
   document.getElementById('itemModal').classList.add('show');
 }
 
+/* 使用当前道具（吃/喝）*/
+function useCurrentItem() {
+  if (isDead) return;
+
+  const name = currentItemName;
+  const effect = FOOD_EFFECTS[name];
+  if (!effect) return;
+  if (!inventory[name] || inventory[name] <= 0) return;
+
+  // 恢复状态
+  if (effect.hunger) hunger = Math.min(100, hunger + effect.hunger);
+  if (effect.thirst) thirst = Math.min(100, thirst + effect.thirst);
+
+  // 扣道具
+  inventory[name]--;
+  if (inventory[name] <= 0) delete inventory[name];
+
+  // 更新状态条 + 存档
+  updateStatusBars();
+  saveGame();
+
+  // 关掉物品弹窗，刷新背包列表
+  closeModal('itemModal');
+  refreshBagList();
+}
+
 /* ============================================================
-   启动：有存档就恢复，没有就新开局
+   重新开始
+   ============================================================ */
+function restartGame() {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+
+  currentBoardIndex = 0;
+  playerPos = 0;
+  inventory = {};
+  nextStepModifier = 0;
+  isMoving = false;
+  hunger = 100;
+  thirst = 100;
+  isDead = false;
+
+  document.getElementById('deathOverlay').classList.remove('show');
+  rollBtn.disabled = false;
+
+  updateStatusBars();
+  switchBoard(0);
+
+  const reviveText = document.getElementById('reviveText');
+  reviveText.classList.remove('show');
+  void reviveText.offsetWidth;
+  reviveText.classList.add('show');
+}
+
+document.getElementById('restartBtn').onclick = restartGame;
+
+/* ============================================================
+   启动
    ============================================================ */
 (function startGame() {
   const hasSave = loadGame();
   if (hasSave) {
-    // 恢复界面
     [...boardTabs.children].forEach((b, i) =>
       b.classList.toggle('active', i === currentBoardIndex)
     );
     renderBoard();
     updatePlayerToken();
-    // 如果骰子图之前显示过，就不还原了，保持空白也行
   } else {
     switchBoard(0);
   }
+  updateStatusBars();
+  checkDeath();
 })();
+
 /* ============================================================
    下雪效果
    ============================================================ */
@@ -693,8 +1106,6 @@ function showItem(name) {
 
   let W, H;
   const flakes = [];
-
-  // 雪花数量：电脑 140 片，手机自动减半，改这个数字就能调密度
   const COUNT = window.innerWidth < 600 ? 70 : 140;
 
   function resize() {
@@ -708,12 +1119,12 @@ function showItem(name) {
     return {
       x: Math.random() * W,
       y: randomY ? Math.random() * H : -10,
-      r: Math.random() * 2.4 + 0.8,          // 雪花大小
-      vy: Math.random() * 0.8 + 0.4,         // 下落速度
-      vx: (Math.random() - 0.5) * 0.5,       // 左右飘移
-      swing: Math.random() * Math.PI * 2,    // 摆动相位
+      r: Math.random() * 2.4 + 0.8,
+      vy: Math.random() * 0.8 + 0.4,
+      vx: (Math.random() - 0.5) * 0.5,
+      swing: Math.random() * Math.PI * 2,
       swingSpeed: Math.random() * 0.02 + 0.01,
-      alpha: Math.random() * 0.6 + 0.3       // 透明度
+      alpha: Math.random() * 0.6 + 0.3
     };
   }
 
@@ -726,12 +1137,7 @@ function showItem(name) {
       f.x += f.vx + Math.sin(f.swing) * 0.7;
       f.y += f.vy;
 
-      // 落到底部就从顶部重新来
-      if (f.y > H + 10) {
-        f.y = -10;
-        f.x = Math.random() * W;
-      }
-      // 左右出界就绕回来
+      if (f.y > H + 10) { f.y = -10; f.x = Math.random() * W; }
       if (f.x < -10) f.x = W + 10;
       if (f.x > W + 10) f.x = -10;
 
@@ -744,7 +1150,6 @@ function showItem(name) {
   }
   draw();
 })();
-
 </script>
 </body>
 </html>
