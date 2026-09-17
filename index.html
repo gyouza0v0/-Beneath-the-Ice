@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Beneath the Ice</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", sans-serif;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    background: #1a1a2e url('img/beijing.jpg') center / cover no-repeat;
+    background-attachment: fixed;
+  }
+
+    /* ============ 下雪画布 ============ */
+  #snowCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;   /* 不挡鼠标点击，下面的按钮都能点 */
+    z-index: 1;             /* 在背景之上、弹窗之下 */
+  }
+
+  /* 让标题、按钮、棋盘都浮在雪花上面 */
+  .title-img,
+  .board-tabs,
+  .board-wrap,
+  .controls {
+    position: relative;
+    z-index: 2;
+  }
+  /* ============ 标题图 ============ */
+  .title-img {
+    display: block;
+    max-width: min(80vw, 500px);
+    height: auto;
+    margin: 8px 0;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));
+  }
+
+  /* ============ 棋盘切换按钮 ============ */
+  .board-tabs { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
+  .board-tabs button {
+    padding: 8px 16px; border: none; border-radius: 6px;
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 14px; cursor: pointer;
+  }
+  .board-tabs button.active { background: #570b0b; color: #000; font-weight: bold; }
+
+  /* ============ 棋盘容器（横版 A4）============ */
+  .board-wrap {
+    position: relative;
+    width: min(94vw, calc(82vh * 1.414), 1000px);
+    aspect-ratio: 297 / 210;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,0,0,0.7);
+  }
+  .board-bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: fill;
+    z-index: 1;
+  }
+  .board-grid {
+    position: absolute; inset: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 0; padding: 0;
+    z-index: 2;
+  }
+
+  /* ============ 格子：只保留虚线，其他透明 ============ */
+  .cell {
+    border-radius: 4px;
+    background: transparent;
+    border: 1px dashed rgba(255,255,255,0.10);
+  }
+  /* 关掉鼠标悬停高亮 */
+  .cell:hover { background: transparent; }
+
+    /* 起点：透明 */
+  .cell.start {
+    background: transparent;
+    border: 1px dashed rgba(255,255,255,0.10);
+  }
+  /* 终点：透明 */
+  .cell.end {
+    background: transparent;
+    border: 1px dashed rgba(255,255,255,0.10);
+  }
+
+  /* ============ 棋子 ============ */
+  .player-token {
+    position: absolute;
+    width: clamp(28px, 6%, 56px);
+    height: auto;
+    z-index: 10;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: left 0.35s ease, top 0.35s ease;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.8));
+  }
+
+  /* ============ 底部控制区 ============ */
+  .controls {
+    display: flex; gap: 14px; align-items: center;
+    flex-wrap: wrap; justify-content: center; margin-bottom: 14px;
+  }
+  .dice-btn {
+    padding: 12px 28px; font-size: 18px; font-weight: bold;
+    border: none; border-radius: 10px; background: #5b0e0e; color: #000;
+    cursor: pointer; touch-action: manipulation;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .dice-btn:disabled { opacity: 0.5; }
+  .dice-img {
+    width: 64px; height: 64px; object-fit: contain;
+    background: rgba(0,0,0,0.35); border-radius: 8px;
+  }
+
+  .bag-btn {
+    background: transparent; border: none; padding: 0;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .bag-icon {
+    width: 60px; height: 60px; object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+    transition: transform 0.15s;
+  }
+  .bag-btn:active .bag-icon { transform: scale(0.92); }
+
+  /* ============ 通用弹窗 ============ */
+  .modal-mask {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    padding: 20px;
+  }
+  .modal-mask.show { display: flex; }
+  .modal-box {
+    background: #2a2a40; border-radius: 16px; padding: 20px;
+    max-width: 360px; width: 100%; text-align: center;
+    max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .modal-box img.card-img { max-width: 100%; border-radius: 10px; margin-bottom: 12px; }
+  .modal-box h2 { font-size: 18px; margin-bottom: 10px; }
+  .modal-box p { font-size: 14px; line-height: 1.6; margin-bottom: 14px; color: #ccc; }
+  .modal-box .ok-btn {
+    padding: 10px 24px; border: none; border-radius: 8px;
+    background: #530808; color: #000; font-weight: bold; cursor: pointer;
+  }
+
+  /* ============ 背包弹窗（pack2.png 做底图）============ */
+  .bag-modal-box {
+    background: transparent; padding: 0;
+    max-width: none; width: min(92vw, 520px);
+    position: relative; overflow: visible; box-shadow: none;
+  }
+  .bag-bg-img {
+    display: block; width: 100%; height: auto;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  }
+  .bag-content {
+    position: absolute; inset: 0;
+    padding: 18% 12% 14% 12%;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-y: auto;
+  }
+  .bag-content h2 {
+    font-size: 16px; margin-bottom: 8px; color: #333;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  }
+  .bag-list { width: 100%; flex: 1; overflow-y: auto; padding: 4px; }
+    .bag-item {
+    padding: 6px 10px; background: rgba(255,255,255,0.75);
+    border-radius: 6px; margin-bottom: 4px;
+    font-size: 13px; color: #222; text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .bag-item:hover { background: rgba(255,255,255,0.98); }
+  .bag-item:active { transform: scale(0.98); }
+  .bag-empty { color: #666; font-size: 13px; text-align: center; margin-top: 20px; }
+  .bag-close-btn {
+    margin-top: 8px; padding: 6px 20px; border: none; border-radius: 6px;
+    background: rgba(0,0,0,0.7); color: #fff; font-size: 13px; cursor: pointer;
+  }
+    /* 物品介绍弹窗 */
+    .item-modal-box {
+    background: transparent;
+    border-radius: 0;
+    padding: 16px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    box-shadow: none;
+  }
+  .item-modal-box .item-img {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 20px rgba(0,0,0,0.8));
+  }
+  .item-modal-box h2 {
+    font-size: 20px;
+    color: #fff;
+    margin-bottom: 12px;
+    text-shadow: 0 2px 6px #000, 0 0 12px rgba(0,0,0,0.9);
+  }
+</style>
+</head>
+<body>
+
+<!-- 标题图 -->
+<img class="title-img" src="img/biaoti.png" alt="标题"
+     onerror="this.outerHTML='<h1 style=&quot;font-size:22px;margin:8px 0;text-shadow:0 2px 6px #000;&quot;>🎲 企划棋盘</h1>'">
+
+<div class="board-tabs" id="boardTabs"></div>
+
+<div class="board-wrap" id="boardWrap">
+  <img class="board-bg" id="boardBg" src="" alt="">
+  <div class="board-grid" id="boardGrid"></div>
+  <img class="player-token" id="playerToken" src="img/piece.png" alt="棋子">
+</div>
+
+<div class="controls">
+  <button class="dice-btn" id="rollBtn">投掷</button>
+  <img class="dice-img" id="diceImg" src="" alt="?" onerror="this.style.display='none'">
+  <button class="bag-btn" id="bagBtn" title="背包">
+    <img class="bag-icon" src="img/pack1.png" alt="背包">
+  </button>
+</div>
+
+<!-- 下雪效果画布 -->
+<canvas id="snowCanvas"></canvas>
+
+<!-- 卡片弹窗 -->
+<div class="modal-mask" id="cardModal">
+  <div class="modal-box">
+    <img class="card-img" id="cardImg" src="" alt="" onerror="this.style.display='none'">
+    <h2 id="cardTitle"></h2>
+    <p id="cardDesc"></p>
+    <button class="ok-btn" onclick="closeModal('cardModal')">知道了</button>
+  </div>
+</div>
+
+<!-- 背包弹窗 -->
+<div class="modal-mask" id="bagModal">
+  <div class="modal-box bag-modal-box">
+    <img class="bag-bg-img" src="img/pack2.jpg" alt="背包"
+         onerror="this.style.display='none'; this.parentNode.style.background='#2a2a40'; this.parentNode.style.padding='20px';">
+    <div class="bag-content">
+      <h2>我的背包</h2>
+      <div class="bag-list" id="bagList"></div>
+      <button class="bag-close-btn" onclick="closeModal('bagModal')">关闭</button>
+    </div>
+  </div>
+</div>
+<!-- 物品介绍弹窗 -->
+<div class="modal-mask" id="itemModal">
+  <div class="modal-box item-modal-box">
+    <img class="item-img" id="itemImg" src="" alt=""
+         onerror="this.style.display='none'; document.getElementById('itemFallback').style.display='block';">
+    <p id="itemFallback" style="display:none; color:#aaa; margin-bottom:14px;">这个道具还没有介绍图</p>
+    <h2 id="itemName"></h2>
+    <button class="ok-btn" onclick="closeModal('itemModal')">关闭</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   图片路径配置
+   ============================================================ */
+const IMG = {
+  boards: ['img/board1.jpg', 'img/board2.jpg', 'img/board3.jpg'],
+  dice: {
+    1: 'img/dice1.png', 2: 'img/dice2.png', 3: 'img/dice3.png',
+    4: 'img/dice4.png', 5: 'img/dice5.png', 6: 'img/dice6.png'
+  },
+  cards: {
+    yellow: 'img/card_yellow.png',
+    purple: 'img/card_purple.png',
+    red: 'img/card_red.png'
+  }
+};
+
+/* ============================================================
+   每个棋盘独立的随机池
+   下标 0 = 棋盘一，下标 1 = 棋盘二，下标 2 = 棋盘三
+   改道具名直接改引号里的文字；增删数量就增删整项
+   ============================================================ */
+const REWARD_POOLS = [
+  // —— 棋盘一 的奖励池（黄色格子）——
+  ['净水片', '暖宝宝', '打火机', '压缩饼干', '瓶装水', '盒饭','卫星电话'],
+  // —— 棋盘二 的奖励池 ——
+  ['罐头', '能量棒', '压缩饼干', '毛线帽', '围巾', '羽绒服','抗生素','巧克力','雪地摩托钥匙'],
+  // —— 棋盘三 的奖励池 ——
+  ['绷带', '酒精', '毛毯', '罐头', '瓶装水', '急救包','遗留的路线图']
+];
+
+const EVENT_POOLS = [
+  // —— 棋盘一 的事件池（紫色格子）——
+  ['水塔维修日志碎片'],
+  // —— 棋盘二 的事件池 ——
+  ['某户人家的日记', '家庭合照', '木雕', '拍立得'],
+  // —— 棋盘三 的事件池 ——
+  ['圣经', '儿童画',]
+];
+
+/* ============================================================
+   棋盘数据：3 个棋盘，每个 25 格
+   索引 0 = 起点，索引 24 = 终点
+   color 取值：'yellow'(奖励) 'purple'(事件) 'red'(惩罚) 'white'(无事)
+   effect 可以是：
+     { type: 'none' }                     无事发生
+     { type: 'item' }                     随机从池子里抽一个道具（推荐）
+     { type: 'step', value: -1 }          下一次投骰子后步数 -1（正数则 +N）
+   ============================================================ */
+const BOARDS = [
+  {
+    name: '水塔',
+    cells: [
+      { color: 'white',  effect: { type: 'none' } },                       // 0 起点
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'yellow',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -3 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } }                        // 24 终点
+    ]
+  },
+  {
+    name: '公寓',
+    cells: [
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'white',  effect: { type: 'none' } }
+    ]
+  },
+  {
+    name: '教堂',
+    cells: [
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'purple', effect: { type: 'item' } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'white',  effect: { type: 'none' } }
+    ]
+  }
+];
+
+/* ============================================================
+   游戏状态
+   ============================================================ */
+let currentBoardIndex = 0;
+let playerPos = 0;
+let inventory = {};
+let nextStepModifier = 0;
+let isMoving = false;
+
+const boardTabs = document.getElementById('boardTabs');
+const boardGrid = document.getElementById('boardGrid');
+const boardBg = document.getElementById('boardBg');
+const playerToken = document.getElementById('playerToken');
+const rollBtn = document.getElementById('rollBtn');
+const diceImg = document.getElementById('diceImg');
+const bagBtn = document.getElementById('bagBtn');
+
+BOARDS.forEach((b, i) => {
+  const btn = document.createElement('button');
+  btn.textContent = b.name;
+  btn.onclick = () => switchBoard(i);
+  boardTabs.appendChild(btn);
+});
+
+function switchBoard(index) {
+  if (isMoving) return;
+  currentBoardIndex = index;
+  playerPos = 0;
+  nextStepModifier = 0;
+  [...boardTabs.children].forEach((b, i) => b.classList.toggle('active', i === index));
+  renderBoard();
+  updatePlayerToken();
+}
+
+/* ============================================================
+   25 格蛇形路径（5 列 × 5 行）
+   0  1  2  3  4
+   9  8  7  6  5
+   10 11 12 13 14
+   19 18 17 16 15
+   20 21 22 23 24
+   ============================================================ */
+const CELL_ORDER = [
+  [1,1],[1,2],[1,3],[1,4],[1,5],
+  [2,5],[2,4],[2,3],[2,2],[2,1],
+  [3,1],[3,2],[3,3],[3,4],[3,5],
+  [4,5],[4,4],[4,3],[4,2],[4,1],
+  [5,1],[5,2],[5,3],[5,4],[5,5]
+];
+
+function renderBoard() {
+  const board = BOARDS[currentBoardIndex];
+  boardBg.src = IMG.boards[currentBoardIndex] || '';
+  boardGrid.innerHTML = '';
+
+  const cellMap = {};
+  CELL_ORDER.forEach((pos, idx) => { cellMap[pos[0] + ',' + pos[1]] = idx; });
+
+  for (let r = 1; r <= 5; r++) {
+    for (let c = 1; c <= 5; c++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      const key = r + ',' + c;
+      if (cellMap[key] !== undefined) {
+        const idx = cellMap[key];
+        const cellData = board.cells[idx];
+        div.classList.add(cellData.color);
+        if (idx === 0) div.classList.add('start');
+        if (idx === 24) div.classList.add('end');
+      }
+      boardGrid.appendChild(div);
+    }
+  }
+}
+
+/* 棋子位置：按格子中心百分比 */
+function updatePlayerToken() {
+  const pos = CELL_ORDER[playerPos];
+  const row = pos[0], col = pos[1];
+  playerToken.style.left = ((col - 1) * 20 + 10) + '%';
+  playerToken.style.top  = ((row - 1) * 20 + 10) + '%';
+}
+
+/* ============================================================
+   投骰子
+   ============================================================ */
+rollBtn.onclick = () => {
+  if (isMoving) return;
+  if (playerPos >= 24) {
+    alert('该区域已探索完毕');
+    return;
+  }
+  isMoving = true;
+  rollBtn.disabled = true;
+
+  const dice = Math.floor(Math.random() * 6) + 1;
+  diceImg.src = IMG.dice[dice] || '';
+  diceImg.style.display = 'block';
+
+  let steps = dice + nextStepModifier;
+  nextStepModifier = 0;
+  if (steps < 1) steps = 1;
+
+  const oldPos = playerPos;
+  const targetPos = Math.min(oldPos + steps, 24);
+
+  let step = oldPos;
+  const timer = setInterval(() => {
+    if (step < targetPos) {
+      step++;
+      playerPos = step;
+      updatePlayerToken();
+    } else {
+      clearInterval(timer);
+      isMoving = false;
+      rollBtn.disabled = false;
+      triggerCellEffect(playerPos);
+    }
+  }, 280);
+};
+
+/* ============================================================
+   格子效果
+   ============================================================ */
+function triggerCellEffect(pos) {
+  const board = BOARDS[currentBoardIndex];
+  const cell = board.cells[pos];
+  if (!cell || cell.effect.type === 'none') return;
+
+  const effect = cell.effect;
+
+  if (effect.type === 'item') {
+    // 按格子颜色选池子，再按当前棋盘编号选具体池
+    let pool;
+    if (cell.color === 'yellow')      pool = REWARD_POOLS[currentBoardIndex];
+    else if (cell.color === 'purple') pool = EVENT_POOLS[currentBoardIndex];
+
+    // 从池子里随机抽一个
+    let name;
+    if (pool && pool.length > 0) {
+      name = pool[Math.floor(Math.random() * pool.length)];
+    } else if (effect.name) {
+      name = effect.name;
+    } else {
+      name = '神秘道具';
+    }
+
+    inventory[name] = (inventory[name] || 0) + 1;
+    showCard(cell.color, '获得道具', `你获得了【${name}】！`);
+  } else if (effect.type === 'step') {
+    nextStepModifier += effect.value;
+    const word = effect.value < 0 ? '减少' : '增加';
+    showCard(cell.color, '遭遇危险', `下一次投骰子后，步数${word} ${Math.abs(effect.value)} 步。`);
+  }
+}
+
+/* ============================================================
+   弹窗
+   ============================================================ */
+function showCard(color, title, desc) {
+  document.getElementById('cardTitle').textContent = title;
+  document.getElementById('cardDesc').textContent = desc;
+  const img = document.getElementById('cardImg');
+  img.src = IMG.cards[color] || '';
+  img.style.display = 'block';
+  document.getElementById('cardModal').classList.add('show');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+bagBtn.onclick = () => {
+  const list = document.getElementById('bagList');
+  const entries = Object.entries(inventory);
+
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="bag-empty">背包空空如也……</div>';
+  } else {
+    list.innerHTML = entries.map(([name, count], i) =>
+      `<div class="bag-item" data-name="${name}">${i + 1}. ${name} × ${count}</div>`
+    ).join('');
+    // 给每个物品加点击 → 弹出介绍图
+    list.querySelectorAll('.bag-item').forEach(el => {
+      el.onclick = () => showItem(el.dataset.name);
+    });
+  }
+  document.getElementById('bagModal').classList.add('show');
+};
+
+/* 弹出物品介绍图 */
+function showItem(name) {
+  document.getElementById('itemName').textContent = name;
+
+  const img = document.getElementById('itemImg');
+  const fallback = document.getElementById('itemFallback');
+
+  // 每次打开都重置一下状态
+  img.style.display = 'block';
+  fallback.style.display = 'none';
+  img.src = 'img/items/' + encodeURIComponent(name) + '.png';
+
+  document.getElementById('itemModal').classList.add('show');
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+switchBoard(0);
+/* ============================================================
+   下雪效果
+   ============================================================ */
+(function snowEffect() {
+  const canvas = document.getElementById('snowCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  let W, H;
+  const flakes = [];
+
+  // 雪花数量：电脑 140 片，手机自动减半，改这个数字就能调密度
+  const COUNT = window.innerWidth < 600 ? 70 : 140;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function makeFlake(randomY) {
+    return {
+      x: Math.random() * W,
+      y: randomY ? Math.random() * H : -10,
+      r: Math.random() * 2.4 + 0.8,          // 雪花大小
+      vy: Math.random() * 0.8 + 0.4,         // 下落速度
+      vx: (Math.random() - 0.5) * 0.5,       // 左右飘移
+      swing: Math.random() * Math.PI * 2,    // 摆动相位
+      swingSpeed: Math.random() * 0.02 + 0.01,
+      alpha: Math.random() * 0.6 + 0.3       // 透明度
+    };
+  }
+
+  for (let i = 0; i < COUNT; i++) flakes.push(makeFlake(true));
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const f of flakes) {
+      f.swing += f.swingSpeed;
+      f.x += f.vx + Math.sin(f.swing) * 0.7;
+      f.y += f.vy;
+
+      // 落到底部就从顶部重新来
+      if (f.y > H + 10) {
+        f.y = -10;
+        f.x = Math.random() * W;
+      }
+      // 左右出界就绕回来
+      if (f.x < -10) f.x = W + 10;
+      if (f.x > W + 10) f.x = -10;
+
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,' + f.alpha + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+</script>
+</body>
+</html>
