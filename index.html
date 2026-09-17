@@ -207,17 +207,19 @@
     text-align: center;
     box-shadow: none;
   }
-  .item-modal-box .item-img {
-    max-width: 100%;
-    max-height: 60vh;
-    border-radius: 10px;
-    margin-bottom: 12px;
+    .item-modal-box .item-img {
+    display: block;
+    width: 100px;
+    height: 100px;
     object-fit: contain;
+    margin: 0 auto 12px auto;   /* 上0 左右auto 下12px → 水平居中 */
+    border-radius: 10px;
     filter: drop-shadow(0 6px 20px rgba(0,0,0,0.8));
   }
   .item-modal-box h2 {
     font-size: 20px;
     color: #fff;
+    text-align: center;
     margin-bottom: 12px;
     text-shadow: 0 2px 6px #000, 0 0 12px rgba(0,0,0,0.9);
   }
@@ -261,7 +263,7 @@
 <!-- 背包弹窗 -->
 <div class="modal-mask" id="bagModal">
   <div class="modal-box bag-modal-box">
-    <img class="bag-bg-img" src="img/pack2.jpg" alt="背包"
+    <img class="bag-bg-img" src="img/pack2.png" alt="背包"
          onerror="this.style.display='none'; this.parentNode.style.background='#2a2a40'; this.parentNode.style.padding='20px';">
     <div class="bag-content">
       <h2>我的背包</h2>
@@ -387,7 +389,7 @@ const BOARDS = [
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
-      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } }
     ]
   },
@@ -417,7 +419,7 @@ const BOARDS = [
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'purple', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
-      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } }
     ]
   }
@@ -431,6 +433,40 @@ let playerPos = 0;
 let inventory = {};
 let nextStepModifier = 0;
 let isMoving = false;
+/* ============================================================
+   存档：把游戏进度存到浏览器本地
+   ============================================================ */
+const SAVE_KEY = 'boardGameSave_v1';
+
+function saveGame() {
+  const data = {
+    boardIndex: currentBoardIndex,
+    pos: playerPos,
+    bag: inventory,
+    stepMod: nextStepModifier
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('存档失败：', e);
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    currentBoardIndex = data.boardIndex || 0;
+    playerPos = data.pos || 0;
+    inventory = data.bag || {};
+    nextStepModifier = data.stepMod || 0;
+    return true;
+  } catch (e) {
+    console.warn('读档失败：', e);
+    return false;
+  }
+}
 
 const boardTabs = document.getElementById('boardTabs');
 const boardGrid = document.getElementById('boardGrid');
@@ -455,6 +491,7 @@ function switchBoard(index) {
   [...boardTabs.children].forEach((b, i) => b.classList.toggle('active', i === index));
   renderBoard();
   updatePlayerToken();
+  saveGame();
 }
 
 /* ============================================================
@@ -540,6 +577,7 @@ rollBtn.onclick = () => {
       isMoving = false;
       rollBtn.disabled = false;
       triggerCellEffect(playerPos);
+      saveGame();
     }
   }, 280);
 };
@@ -629,9 +667,22 @@ function showItem(name) {
 }
 
 /* ============================================================
-   启动
+   启动：有存档就恢复，没有就新开局
    ============================================================ */
-switchBoard(0);
+(function startGame() {
+  const hasSave = loadGame();
+  if (hasSave) {
+    // 恢复界面
+    [...boardTabs.children].forEach((b, i) =>
+      b.classList.toggle('active', i === currentBoardIndex)
+    );
+    renderBoard();
+    updatePlayerToken();
+    // 如果骰子图之前显示过，就不还原了，保持空白也行
+  } else {
+    switchBoard(0);
+  }
+})();
 /* ============================================================
    下雪效果
    ============================================================ */
