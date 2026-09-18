@@ -16,7 +16,21 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* 让按钮、输入框也继承页面字体 */
+  /* 防保存基础防护 */
+  img {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    pointer-events: none;
+  }
+  .bag-btn img,
+  .dice-btn img,
+  .img-btn img {
+    pointer-events: auto;
+  }
+
   button, input, select, textarea { font-family: inherit; }
 
   html, body { min-height: 100%; }
@@ -40,17 +54,21 @@
     pointer-events: none;
     z-index: 1;
   }
-  .title-img, .board-tabs, .board-wrap, .controls {
+  .title-wrap, .board-tabs, .board-wrap, .controls {
     position: relative;
     z-index: 2;
   }
 
   /* ============ 标题图 ============ */
+  .title-wrap {
+    display: inline-block;
+    margin: 8px 0;
+    max-width: min(80vw, 500px);
+  }
   .title-img {
     display: block;
-    max-width: min(80vw, 500px);
+    max-width: 100%;
     height: auto;
-    margin: 8px 0;
     filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));
   }
 
@@ -98,7 +116,6 @@
     background: transparent;
     border: 1px dashed rgba(255,255,255,0.10);
   }
-  .cell.start, .cell.end { border: 1px dashed rgba(255,255,255,0.10); }
 
   /* ============ 棋子 ============ */
   .player-token {
@@ -130,8 +147,9 @@
   }
   .dice-btn-img {
     display: block;
-    width: 100px;         /* 按钮图宽度，想调大改这个数字 */
-    height: auto;
+    height: 85px;      /* 高度固定 */
+    width: auto;       /* 宽度按比例自适应 */
+    max-width: 180px;  /* 限制最宽，防止横图太长 */
     filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
   }
   .dice-btn:hover .dice-btn-img { transform: scale(1.04); }
@@ -166,12 +184,8 @@
     box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     position: relative;
   }
-  .modal-box .ok-btn {
-    padding: 10px 24px; border: none; border-radius: 8px;
-    background: #530808; color: #fff; font-weight: bold; cursor: pointer;
-  }
 
-  /* ============ 卡片弹窗：图片做底图，文字叠在上面 ============ */
+  /* ============ 卡片弹窗 ============ */
   .card-modal-box {
     background: transparent;
     padding: 0;
@@ -208,17 +222,8 @@
     line-height: 1.6;
     margin-bottom: 14px;
   }
-  .card-content .ok-btn {
-    padding: 8px 22px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(0,0,0,0.75);
-    color: #fff;
-    font-weight: bold;
-    cursor: pointer;
-  }
 
-  /* ============ 背包弹窗 ============ */
+  /* ============ 背包 / 制作 弹窗 ============ */
   .bag-modal-box {
     background: transparent; padding: 0;
     max-width: none; width: min(92vw, 520px);
@@ -250,10 +255,6 @@
   .bag-item:hover { background: rgba(255,255,255,0.98); }
   .bag-item:active { transform: scale(0.98); }
   .bag-empty { color: #666; font-size: 15px; text-align: center; margin-top: 20px; }
-  .bag-close-btn {
-    margin-top: 8px; padding: 6px 20px; border: none; border-radius: 6px;
-    background: rgba(0,0,0,0.7); color: #fff; font-size: 15px; cursor: pointer;
-  }
 
   /* ============ 饥饿 / 口渴 状态条 ============ */
   .status-bars {
@@ -269,9 +270,9 @@
     gap: 5px;
     font-size: 12px;
   }
-    .bar-icon {
-    width: 30px;
-    height: 30px;
+  .bar-icon {
+    width: 36px;
+    height: 36px;
     object-fit: contain;
     display: block;
     flex-shrink: 0;
@@ -289,8 +290,8 @@
     width: 100%;
     transition: width 0.4s ease;
   }
-  .bar-fill.hunger { background: linear-gradient(90deg, #a5623e, #a19377); }
-  .bar-fill.thirst { background: linear-gradient(90deg, #476587, #9dafbe); }
+  .bar-fill.hunger { background: linear-gradient(90deg, #8b4141, #a59e98); }
+  .bar-fill.thirst { background: linear-gradient(90deg, #4a6581, #a2acb4); }
   .bar-num {
     min-width: 26px;
     text-align: right;
@@ -356,13 +357,18 @@
     border: none;
     cursor: pointer;
     text-shadow: 0 0 10px #ff0000, 0 0 20px #8b0000;
-    transition: all 0.3s;
     font-family: inherit;
+    opacity: 0;
+    animation: restartFadeIn 2s ease 3s forwards;
   }
   .restart-btn:hover {
     color: #ff3333;
     text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #8b0000;
     transform: scale(1.05);
+  }
+  @keyframes restartFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   /* ============ 重开时的白色发光字 ============ */
@@ -444,33 +450,104 @@
   }
   .img-btn img {
     display: block;
-    width: 55px;            /* 按钮图宽度，想调大改这里 */
+    width: 55px;
     height: auto;
     filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));
   }
   .img-btn:hover img { transform: scale(1.06); }
   .img-btn:active img { transform: scale(0.94); }
 
-  /* 使用按钮默认隐藏，有食物效果时才显示 */
-  .item-actions .use-btn {
-    display: none;
+  .item-actions .use-btn { display: none; }
+
+  /* ============ 制作（配方列表）============ */
+  .recipe-list {
+    width: 100%;
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    align-content: start;
+  }
+  .recipe-item {
+    background: rgba(255,255,255,0.78);
+    border-radius: 8px;
+    padding: 6px;
+    text-align: center;
+    color: #222;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+  }
+  .recipe-item .recipe-title {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 3px;
+    color: #111;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .recipe-item .recipe-mat {
+    font-size: 10px;
+    margin: 1px 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .recipe-item .recipe-mat.ok      { color: #2e7d32; }
+  .recipe-item .recipe-mat.missing { color: #c62828; }
+  .recipe-item .recipe-action {
+    margin-top: 4px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 5px;
+    background: #2e7d32;
+    color: #fff;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    transition: background 0.15s, transform 0.1s;
+    width: 100%;
+  }
+  .recipe-item .recipe-action:hover { background: #43a047; }
+  .recipe-item .recipe-action:active { transform: scale(0.96); }
+  .recipe-item .recipe-action:disabled {
+    background: #888;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .recipe-empty {
+    color: #555;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 20px;
+    grid-column: 1 / -1;
   }
 
   /* ============ 手机端紧凑布局 ============ */
   @media (max-width: 480px) {
     .status-bars { width: 110px; }
     .bar-row { font-size: 11px; gap: 3px; }
-    .bar-icon { font-size: 12px; }
+    .bar-icon { width: 24px; height: 24px; }
     .bar-num { font-size: 11px; min-width: 22px; }
     .death-text { font-size: 22px; letter-spacing: 4px; }
+    .recipe-list { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
 <body>
 
 <!-- 标题图 -->
-<img class="title-img" src="img/biaoti.png" alt="标题"
-     onerror="this.outerHTML='<h1 style=&quot;font-size:22px;margin:8px 0;text-shadow:0 2px 6px #000;&quot;>Beneath the Ice</h1>'">
+<div class="title-wrap">
+  <img class="title-img" src="img/biaoti.png" alt="标题"
+       onerror="this.outerHTML='<h1 style=&quot;font-size:22px;margin:8px 0;text-shadow:0 2px 6px #000;&quot;>Beneath the Ice</h1>'">
+</div>
 
 <div class="board-tabs" id="boardTabs"></div>
 
@@ -493,19 +570,23 @@
       <span class="bar-num" id="thirstNum">100</span>
     </div>
   </div>
-<button class="dice-btn" id="rollBtn" title="投掷">
-  <img class="dice-btn-img" src="img/roll.png" alt="投掷">
-</button>
+  <button class="dice-btn" id="rollBtn" title="投掷">
+    <img class="dice-btn-img" src="img/roll.png" alt="投掷">
+  </button>
   <img class="dice-img" id="diceImg" src="" alt="?" onerror="this.style.display='none'">
   <button class="bag-btn" id="bagBtn" title="背包">
     <img class="bag-icon" src="img/pack1.png" alt="背包">
+  </button>
+  <button class="bag-btn" id="workbenchBtn" title="制作">
+    <img class="bag-icon" src="img/craft.png" alt="制作"
+         onerror="this.outerHTML='<span style=&quot;color:#fff;font-size:14px;padding:8px;&quot;>制作</span>'">
   </button>
 </div>
 
 <!-- 下雪效果画布 -->
 <canvas id="snowCanvas"></canvas>
 
-<!-- 卡片弹窗（获得奖励 / 遭遇危险）-->
+<!-- 卡片弹窗 -->
 <div class="modal-mask" id="cardModal">
   <div class="modal-box card-modal-box">
     <img class="card-bg-img" id="cardImg" src="" alt="" onerror="this.style.display='none'">
@@ -513,8 +594,8 @@
       <h2 id="cardTitle"></h2>
       <p id="cardDesc"></p>
       <button class="img-btn" onclick="closeModal('cardModal')">
-  <img src="img/close.png" alt="关闭">
-</button>
+        <img src="img/close.png" alt="关闭">
+      </button>
     </div>
   </div>
 </div>
@@ -528,8 +609,8 @@
       <h2>我的背包</h2>
       <div class="bag-list" id="bagList"></div>
       <button class="img-btn" onclick="closeModal('bagModal')">
-  <img src="img/close.png" alt="关闭">
-</button>
+        <img src="img/close.png" alt="关闭">
+      </button>
     </div>
   </div>
 </div>
@@ -552,6 +633,21 @@
   </div>
 </div>
 
+<!-- 制作弹窗 -->
+<div class="modal-mask" id="workbenchModal">
+  <div class="modal-box bag-modal-box">
+    <img class="bag-bg-img" src="img/pack2.png" alt="制作"
+         onerror="this.style.display='none'; this.parentNode.style.background='#2a2a40'; this.parentNode.style.padding='20px';">
+    <div class="bag-content">
+      <h2>制作</h2>
+      <div class="recipe-list" id="recipeList"></div>
+      <button class="img-btn" onclick="closeModal('workbenchModal')">
+        <img src="img/close.png" alt="关闭">
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- 低状态暗角 -->
 <div class="vignette" id="vignette"></div>
 
@@ -565,6 +661,25 @@
 <p class="revive-text" id="reviveText">刚刚好像做了一场噩梦...</p>
 
 <script>
+/* ============================================================
+   防保存：禁止右键 + 禁止拖拽图片
+   ============================================================ */
+document.addEventListener('contextmenu', e => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+});
+document.addEventListener('dragstart', e => {
+  if (e.target.tagName === 'IMG') e.preventDefault();
+});
+
+/* ============================================================
+   常量
+   ============================================================ */
+const SAVE_KEY = 'boardGameSave_v1';
+const TOTAL_CELLS = 25;
+const WEATHER_CHANGE_INTERVAL = 10;   // 每投 10 次骰子换一次天气
+
 /* ============================================================
    图片路径配置
    ============================================================ */
@@ -585,35 +700,42 @@ const IMG = {
    每个棋盘独立的随机池
    ============================================================ */
 const REWARD_POOLS = [
-  ['净水片', '暖宝宝', '打火机', '压缩饼干', '瓶装水', '盒饭', '卫星电话', '电工胶带', '废弃铁料'],
-  ['罐头', '能量棒', '压缩饼干', '毛线帽', '围巾', '羽绒服', '抗生素', '巧克力', '雪地摩托钥匙', '旧沙发', '塑料凳', '废弃木料'],
-  ['绷带', '酒精', '毛毯', '罐头', '瓶装水', '急救包', '遗留的路线图', '蜡烛']
+  ['净水片', '暖宝宝', '打火机', '压缩饼干', '瓶装水', '盒饭', '电工胶带', '废弃铁料', '污水'],
+  ['罐头', '能量棒', '压缩饼干', '抗生素', '巧克力', '废弃木料', '肉', '蔫了的蔬菜'],
+  ['绷带', '酒精', '罐头', '瓶装水', '急救包']
 ];
 
 const EVENT_POOLS = [
-  ['水塔维修日志碎片'],
-  ['某户人家的日记', '家庭合照', '木雕', '拍立得'],
-  ['圣经', '儿童画']
+  ['水塔维修日志', '特殊芯片'],
+  ['某户人家的日记', '家庭合照', '木雕', '拍立得', '雪地摩托钥匙'],
+  ['圣经', '儿童画', '遗留的路线图']
 ];
+
 /* ============================================================
    食物 / 饮水效果表
-   格式：'道具名': { hunger: 数值, thirst: 数值 }
-   想改恢复量直接改数字；想加新食物照抄一行
    ============================================================ */
 const FOOD_EFFECTS = {
-  // 食物类（恢复饥饿）
   '压缩饼干': { hunger: 30 },
   '盒饭':     { hunger: 45 },
   '罐头':     { hunger: 35 },
   '能量棒':   { hunger: 25 },
   '巧克力':   { hunger: 20 },
-
-  // 水类（恢复口渴）
+  '青菜炒肉': { hunger: 45 },
+  '自热火锅': { hunger: 45 },
   '瓶装水':   { thirst: 40 },
-  '净水片':   { thirst: 25 },
+  '急救包':   { hunger: 25, thirst: 25 },
+  '抗生素':   { hunger: 10, thirst: 10 },
+};
 
-  // 混合类
-  '急救包':   { hunger: 15, thirst: 15 },
+/* ============================================================
+   制作配方表
+   ============================================================ */
+const RECIPES = {
+  '瓶装水':   { materials: { '净水片': 1, '污水': 1 } },
+  '急救包':   { materials: { '绷带': 1, '酒精': 1 } },
+  '卫星电话': { materials: { '废弃铁料': 10, '电工胶带': 5 } },
+  '青菜炒肉': { materials: { '肉': 1, '蔫了的蔬菜': 2, '打火机': 1 } },
+  '自热火锅': { materials: { '肉': 1, '蔫了的蔬菜': 2, '暖宝宝': 1 } },
 };
 
 /* ============================================================
@@ -625,16 +747,16 @@ const BOARDS = [
     cells: [
       { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
-      { color: 'purple', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'red',    effect: { type: 'step', value: -1 } },
       { color: 'yellow', effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
-      { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
-      { color: 'red',    effect: { type: 'step', value: -1 } },
       { color: 'purple', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'red',    effect: { type: 'step', value: -3 } },
@@ -663,16 +785,16 @@ const BOARDS = [
       { color: 'red',    effect: { type: 'step', value: -2 } },
       { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
-      { color: 'purple', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'red',    effect: { type: 'step', value: -1 } },
       { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'purple', effect: { type: 'item' } },
-      { color: 'red',    effect: { type: 'step', value: -2 } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
-      { color: 'purple', effect: { type: 'item' } },
-      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'red',    effect: { type: 'step', value: -3 } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
@@ -686,19 +808,19 @@ const BOARDS = [
       { color: 'white',  effect: { type: 'none' } },
       { color: 'red',    effect: { type: 'step', value: -1 } },
       { color: 'yellow', effect: { type: 'item' } },
-      { color: 'purple', effect: { type: 'item' } },
-      { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
-      { color: 'red',    effect: { type: 'step', value: -2 } },
-      { color: 'purple', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'purple', effect: { type: 'item' } },
-      { color: 'red',    effect: { type: 'step', value: -1 } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'red',    effect: { type: 'step', value: -2 } },
+      { color: 'white',  effect: { type: 'none' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
+      { color: 'yellow', effect: { type: 'item' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'yellow', effect: { type: 'item' } },
       { color: 'white',  effect: { type: 'none' } },
@@ -723,9 +845,12 @@ let isMoving = false;
 let hunger = 100;
 let thirst = 100;
 let isDead = false;
-let currentItemName = '';   // 当前打开介绍图的物品名
+let currentItemName = '';
+let collectedEvents = [[], [], []];
 
-const SAVE_KEY = 'boardGameSave_v1';
+// 天气：'sunny' | 'light-snow' | 'blizzard'
+let weather = 'sunny';
+let rollCount = 0;
 
 function saveGame() {
   const data = {
@@ -735,7 +860,10 @@ function saveGame() {
     stepMod: nextStepModifier,
     hunger: hunger,
     thirst: thirst,
-    isDead: isDead
+    isDead: isDead,
+    collectedEvents: collectedEvents,
+    weather: weather,
+    rollCount: rollCount
   };
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -756,6 +884,9 @@ function loadGame() {
     hunger = (typeof data.hunger === 'number') ? data.hunger : 100;
     thirst = (typeof data.thirst === 'number') ? data.thirst : 100;
     isDead = !!data.isDead;
+    collectedEvents = data.collectedEvents || [[], [], []];
+    weather = data.weather || 'sunny';
+    rollCount = (typeof data.rollCount === 'number') ? data.rollCount : 0;
     return true;
   } catch (e) {
     console.warn('读档失败：', e);
@@ -773,6 +904,7 @@ const playerToken = document.getElementById('playerToken');
 const rollBtn = document.getElementById('rollBtn');
 const diceImg = document.getElementById('diceImg');
 const bagBtn = document.getElementById('bagBtn');
+const workbenchBtn = document.getElementById('workbenchBtn');
 
 BOARDS.forEach((b, i) => {
   const btn = document.createElement('button');
@@ -793,7 +925,7 @@ function switchBoard(index) {
 }
 
 /* ============================================================
-   25 格蛇形路径（5 列 × 5 行）
+   25 格蛇形路径
    ============================================================ */
 const CELL_ORDER = [
   [1,1],[1,2],[1,3],[1,4],[1,5],
@@ -836,6 +968,21 @@ function updatePlayerToken() {
 }
 
 /* ============================================================
+   天气系统
+   ============================================================ */
+function applyWeather(newWeather) {
+  weather = newWeather;
+  document.body.classList.remove('weather-sunny', 'weather-light-snow', 'weather-blizzard');
+  document.body.classList.add('weather-' + newWeather);
+}
+
+function randomizeWeather() {
+  const pool = ['sunny', 'light-snow', 'blizzard'];
+  const newWeather = pool[Math.floor(Math.random() * pool.length)];
+  applyWeather(newWeather);
+}
+
+/* ============================================================
    投骰子
    ============================================================ */
 rollBtn.onclick = () => {
@@ -849,15 +996,16 @@ rollBtn.onclick = () => {
 
   let steps = dice + nextStepModifier;
   nextStepModifier = 0;
+
+  // 暴雪：步数 -1
+  if (weather === 'blizzard') steps -= 1;
   if (steps < 1) steps = 1;
 
-  // 无限循环：走完 25 格（索引 0~24）就绕回 0
-  const TOTAL = 25;
   let moved = 0;
   const timer = setInterval(() => {
     if (moved < steps) {
       moved++;
-      playerPos = (playerPos + 1) % TOTAL;
+      playerPos = (playerPos + 1) % TOTAL_CELLS;
       updatePlayerToken();
     } else {
       clearInterval(timer);
@@ -865,6 +1013,14 @@ rollBtn.onclick = () => {
       rollBtn.disabled = false;
       triggerCellEffect(playerPos);
       decreaseStats();
+
+      // 投掷计数：每 10 次换一次天气
+      rollCount++;
+      if (rollCount >= WEATHER_CHANGE_INTERVAL) {
+        rollCount = 0;
+        randomizeWeather();
+      }
+
       saveGame();
     }
   }, 280);
@@ -881,25 +1037,37 @@ function triggerCellEffect(pos) {
   const effect = cell.effect;
 
   if (effect.type === 'item') {
-    let pool;
-    if (cell.color === 'yellow')      pool = REWARD_POOLS[currentBoardIndex];
-    else if (cell.color === 'purple') pool = EVENT_POOLS[currentBoardIndex];
-
     let name;
-    if (pool && pool.length > 0) {
+
+    if (cell.color === 'yellow') {
+      const pool = REWARD_POOLS[currentBoardIndex];
       name = pool[Math.floor(Math.random() * pool.length)];
-    } else if (effect.name) {
-      name = effect.name;
-    } else {
-      name = '神秘道具';
+
+    } else if (cell.color === 'purple') {
+      const fullPool = EVENT_POOLS[currentBoardIndex] || [];
+      const collected = collectedEvents[currentBoardIndex] || [];
+      const remaining = fullPool.filter(item => !collected.includes(item));
+
+      if (remaining.length === 0) {
+        showCard(cell.color, '似曾相识', '这里的东西你已经带走了……');
+        return;
+      }
+
+      name = remaining[Math.floor(Math.random() * remaining.length)];
+      collected.push(name);
     }
+
+    if (!name) name = '神秘道具';
 
     inventory[name] = (inventory[name] || 0) + 1;
     showCard(cell.color, '获得道具', `你获得了【${name}】！`);
+
   } else if (effect.type === 'step') {
-    nextStepModifier += effect.value;
-    const word = effect.value < 0 ? '减少' : '增加';
-    showCard(cell.color, '遭遇危险', `下一次投骰子后，步数${word} ${Math.abs(effect.value)} 步。`);
+    const val = (typeof effect.value === 'number') ? effect.value : 0;
+    if (val === 0) return;
+    nextStepModifier += val;
+    const word = val < 0 ? '减少' : '增加';
+    showCard(cell.color, '遭遇危险', `下一次投骰子后，步数${word} ${Math.abs(val)} 步。`);
   }
 }
 
@@ -924,9 +1092,12 @@ function closeModal(id) {
    ============================================================ */
 function decreaseStats() {
   if (isDead) return;
-  // 每次投骰子，饥饿和口渴各随机降 2~5
-  hunger = Math.max(0, hunger - (Math.floor(Math.random() * 4) + 2));
-  thirst = Math.max(0, thirst - (Math.floor(Math.random() * 4) + 2));
+
+  // 天气额外扣除：小雪 / 暴雪 额外 -1
+  const extra = (weather === 'light-snow' || weather === 'blizzard') ? 1 : 0;
+
+  hunger = Math.max(0, hunger - (Math.floor(Math.random() * 4) + 2 + extra));
+  thirst = Math.max(0, thirst - (Math.floor(Math.random() * 4) + 2 + extra));
   updateStatusBars();
   checkDeath();
 }
@@ -942,7 +1113,6 @@ function updateStatusBars() {
   hungerNum.textContent = Math.ceil(hunger);
   thirstNum.textContent = Math.ceil(thirst);
 
-  // 暗角：50 → 0 每降一点就暗一点
   const minV = Math.min(hunger, thirst);
   const vignette = document.getElementById('vignette');
 
@@ -970,7 +1140,10 @@ function checkDeath() {
     isDead = true;
     rollBtn.disabled = true;
     document.getElementById('vignette').style.opacity = 0;
-    document.getElementById('deathOverlay').classList.add('show');
+    const overlay = document.getElementById('deathOverlay');
+    overlay.classList.remove('show');
+    void overlay.offsetWidth;
+    overlay.classList.add('show');
     saveGame();
   }
 }
@@ -983,7 +1156,6 @@ bagBtn.onclick = () => {
   document.getElementById('bagModal').classList.add('show');
 };
 
-/* 刷新背包列表（用道具后会重新调用）*/
 function refreshBagList() {
   const list = document.getElementById('bagList');
   const entries = Object.entries(inventory);
@@ -1000,7 +1172,6 @@ function refreshBagList() {
   }
 }
 
-/* 物品介绍弹窗 */
 function showItem(name) {
   currentItemName = name;
   document.getElementById('itemName').textContent = name;
@@ -1012,18 +1183,12 @@ function showItem(name) {
   fallback.style.display = 'none';
   img.src = 'img/items/' + encodeURIComponent(name) + '.png';
 
-  // 是否是能吃的食物？是就显示「使用」按钮
-  const useBtn = document.getElementById('useItemBtn');
-  if (FOOD_EFFECTS[name]) {
-    useBtn.style.display = 'flex';
-  } else {
-    useBtn.style.display = 'none';
-  }
+  document.getElementById('useItemBtn').style.display =
+    FOOD_EFFECTS[name] ? 'flex' : 'none';
 
   document.getElementById('itemModal').classList.add('show');
 }
 
-/* 使用当前道具（吃/喝）*/
 function useCurrentItem() {
   if (isDead) return;
 
@@ -1032,21 +1197,89 @@ function useCurrentItem() {
   if (!effect) return;
   if (!inventory[name] || inventory[name] <= 0) return;
 
-  // 恢复状态
   if (effect.hunger) hunger = Math.min(100, hunger + effect.hunger);
   if (effect.thirst) thirst = Math.min(100, thirst + effect.thirst);
 
-  // 扣道具
   inventory[name]--;
   if (inventory[name] <= 0) delete inventory[name];
 
-  // 更新状态条 + 存档
   updateStatusBars();
   saveGame();
 
-  // 关掉物品弹窗，刷新背包列表
   closeModal('itemModal');
   refreshBagList();
+}
+
+/* ============================================================
+   制作
+   ============================================================ */
+function canCraft(name) {
+  const recipe = RECIPES[name];
+  if (!recipe) return false;
+  for (const [mat, need] of Object.entries(recipe.materials)) {
+    if ((inventory[mat] || 0) < need) return false;
+  }
+  return true;
+}
+
+workbenchBtn.onclick = () => {
+  renderRecipeList();
+  document.getElementById('workbenchModal').classList.add('show');
+};
+
+function renderRecipeList() {
+  const list = document.getElementById('recipeList');
+  const names = Object.keys(RECIPES);
+
+  if (names.length === 0) {
+    list.innerHTML = '<div class="recipe-empty">暂无可用配方……</div>';
+    return;
+  }
+
+  list.innerHTML = names.map(name => {
+    const recipe = RECIPES[name];
+
+    const matLines = Object.entries(recipe.materials).map(([mat, need]) => {
+      const have = inventory[mat] || 0;
+      const ok = have >= need;
+      const icon = ok ? '✓' : '✗';
+      return `<div class="recipe-mat ${ok ? 'ok' : 'missing'}">${icon} ${mat} × ${need}（拥有 ${have}）</div>`;
+    }).join('');
+
+    const can = canCraft(name);
+    const btnText = can ? '合成' : '材料不足';
+    const disabled = can ? '' : 'disabled';
+
+    return `
+      <div class="recipe-item">
+        <div class="recipe-title">${name} × 1</div>
+        ${matLines}
+        <button class="recipe-action" ${disabled}
+                onclick="craftFromWorkbench('${name}')">${btnText}</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function craftFromWorkbench(name) {
+  if (isDead) return;
+  if (!canCraft(name)) return;
+
+  const recipe = RECIPES[name];
+
+  for (const [mat, need] of Object.entries(recipe.materials)) {
+    inventory[mat] -= need;
+    if (inventory[mat] <= 0) delete inventory[mat];
+  }
+
+  inventory[name] = (inventory[name] || 0) + 1;
+
+  saveGame();
+  renderRecipeList();
+
+  const mats = Object.entries(recipe.materials)
+    .map(([m, n]) => `${m} × ${n}`).join(' + ');
+  showCard('yellow', '制作成功', `${mats} → 【${name}】`);
 }
 
 /* ============================================================
@@ -1063,10 +1296,14 @@ function restartGame() {
   hunger = 100;
   thirst = 100;
   isDead = false;
+  collectedEvents = [[], [], []];
+  weather = 'sunny';
+  rollCount = 0;
 
   document.getElementById('deathOverlay').classList.remove('show');
   rollBtn.disabled = false;
 
+  applyWeather('sunny');
   updateStatusBars();
   switchBoard(0);
 
@@ -1092,12 +1329,13 @@ document.getElementById('restartBtn').onclick = restartGame;
   } else {
     switchBoard(0);
   }
+  applyWeather(weather);
   updateStatusBars();
   checkDeath();
 })();
 
 /* ============================================================
-   下雪效果
+   下雪效果（密度 / 速度随天气变化）
    ============================================================ */
 (function snowEffect() {
   const canvas = document.getElementById('snowCanvas');
@@ -1106,7 +1344,23 @@ document.getElementById('restartBtn').onclick = restartGame;
 
   let W, H;
   const flakes = [];
-  const COUNT = window.innerWidth < 600 ? 70 : 140;
+  const BASE_COUNT = window.innerWidth < 600 ? 70 : 140;
+
+  // 不同天气的倍率
+  const SNOW_MULT = {
+    'sunny':      1.0,   // 原样
+    'light-snow': 1.7,   // 多一些
+    'blizzard':   2.8    // 最多
+  };
+  const SPEED_MULT = {
+    'sunny':      1.0,
+    'light-snow': 1.25,
+    'blizzard':   1.85
+  };
+
+  // 当前值（会平滑过渡）
+  let currentMult = 1.0;
+  let currentSpeed = 1.0;
 
   function resize() {
     W = canvas.width = window.innerWidth;
@@ -1128,14 +1382,28 @@ document.getElementById('restartBtn').onclick = restartGame;
     };
   }
 
-  for (let i = 0; i < COUNT; i++) flakes.push(makeFlake(true));
+  for (let i = 0; i < BASE_COUNT; i++) flakes.push(makeFlake(true));
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
+
+    // 目标倍率
+    const targetMult  = SNOW_MULT[weather]  || 1.0;
+    const targetSpeed = SPEED_MULT[weather] || 1.0;
+
+    // 平滑逼近目标（每帧一小步，约 2 秒过渡完）
+    currentMult  += (targetMult  - currentMult ) * 0.010;
+    currentSpeed += (targetSpeed - currentSpeed) * 0.010;
+
+    // 根据目标数量增减雪花
+    const targetCount = Math.floor(BASE_COUNT * currentMult);
+    while (flakes.length < targetCount) flakes.push(makeFlake(false));
+    while (flakes.length > targetCount) flakes.pop();
+
     for (const f of flakes) {
       f.swing += f.swingSpeed;
-      f.x += f.vx + Math.sin(f.swing) * 0.7;
-      f.y += f.vy;
+      f.x += (f.vx + Math.sin(f.swing) * 0.7) * currentSpeed;
+      f.y += f.vy * currentSpeed;
 
       if (f.y > H + 10) { f.y = -10; f.x = Math.random() * W; }
       if (f.x < -10) f.x = W + 10;
