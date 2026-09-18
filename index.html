@@ -300,6 +300,26 @@
     text-shadow: 0 1px 3px #000;
   }
 
+  /* ============ 眨眼遮罩 ============ */
+  .blink-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9998;
+  }
+  .blink-overlay.blink {
+    animation: blinkAnim 4.5s ease-in-out forwards;
+  }
+  @keyframes blinkAnim {
+    0%   { opacity: 0; }
+    45%  { opacity: 1; }    /* 缓慢闭眼 */
+    60%  { opacity: 0; }    /* 缓慢睁开 */
+    80%  { opacity: 1; }    /* 再次缓慢闭眼 */
+    100% { opacity: 1; }    /* 保持全黑 */
+  }
+
   /* ============ 暗角 ============ */
   .vignette {
     position: fixed;
@@ -458,6 +478,7 @@
   .img-btn:active img { transform: scale(0.94); }
 
   .item-actions .use-btn { display: none; }
+  .item-actions .eat-btn { display: none; }
 
   /* ============ 制作（配方列表）============ */
   .recipe-list {
@@ -530,6 +551,92 @@
     grid-column: 1 / -1;
   }
 
+  /* ============ 剧情播放器 ============ */
+  .story-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 60px 40px;
+    z-index: 500;
+    cursor: pointer;
+    user-select: none;
+    overflow-y: auto;
+  }
+  .story-overlay.show { display: flex; }
+
+  .story-text {
+    color: #fff;
+    font-size: 20px;
+    line-height: 2;
+    letter-spacing: 1px;
+    max-width: 640px;
+    width: 100%;
+    text-align: center;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: auto 0;
+    text-shadow:
+      0 0 6px #fff,
+      0 0 12px rgba(200, 220, 255, 0.85),
+      0 0 24px rgba(150, 180, 255, 0.6);
+  }
+
+  .story-choices {
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 36px;
+    width: 100%;
+    max-width: 400px;
+  }
+  .story-choices.show { display: flex; }
+
+  .story-choice {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    text-align: center;
+    text-shadow:
+      0 0 6px #fff,
+      0 0 12px rgba(200, 220, 255, 0.85),
+      0 0 24px rgba(150, 180, 255, 0.6);
+  }
+  .story-choice:hover {
+    color: #fff;
+    text-shadow:
+      0 0 8px #fff,
+      0 0 16px #fff,
+      0 0 32px rgba(200, 220, 255, 1),
+      0 0 48px rgba(150, 180, 255, 0.8);
+    transform: scale(1.05);
+  }
+
+  .story-blink {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .story-blink.active {
+    animation: storyBlinkAnim 1.2s ease-in-out;
+  }
+  @keyframes storyBlinkAnim {
+    0%   { opacity: 0; }
+    45%  { opacity: 1; }
+    55%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
   /* ============ 手机端紧凑布局 ============ */
   @media (max-width: 480px) {
     .status-bars { width: 110px; }
@@ -537,6 +644,9 @@
     .bar-icon { width: 24px; height: 24px; }
     .bar-num { font-size: 11px; min-width: 22px; }
     .death-text { font-size: 22px; letter-spacing: 4px; }
+    .story-overlay { padding: 40px 20px; }
+    .story-text { font-size: 16px; line-height: 1.9; }
+    .story-choice { font-size: 17px; padding: 8px 12px; }    
 
     /* 制作格子：手机上取消正方形，改成高度自适应 */
     .recipe-list { grid-template-columns: repeat(2, 1fr); gap: 6px; }
@@ -633,7 +743,10 @@
     <p id="itemFallback" style="display:none; color:#fff; text-shadow:0 2px 6px #000; margin-bottom:14px;">这个道具还没有介绍图</p>
     <h2 id="itemName"></h2>
     <div class="item-actions">
-      <button class="img-btn use-btn" id="useItemBtn" onclick="useCurrentItem()">
+      <button class="img-btn eat-btn" id="eatItemBtn" onclick="useCurrentItem()">
+        <img src="img/eat.png" alt="食用">
+      </button>
+      <button class="img-btn use-btn" id="useItemBtn" onclick="useStoryItem()">
         <img src="img/use.png" alt="使用">
       </button>
       <button class="img-btn" onclick="closeModal('itemModal')">
@@ -658,6 +771,9 @@
   </div>
 </div>
 
+<!-- 眨眼遮罩 -->
+<div class="blink-overlay" id="blinkOverlay"></div>
+
 <!-- 低状态暗角 -->
 <div class="vignette" id="vignette"></div>
 
@@ -669,6 +785,12 @@
 
 <!-- 重开时的白色发光字 -->
 <p class="revive-text" id="reviveText">刚刚好像做了一场噩梦...</p>
+<!-- 剧情播放遮罩 -->
+<div class="story-overlay" id="storyOverlay">
+  <p class="story-text" id="storyText"></p>
+  <div class="story-choices" id="storyChoices"></div>
+  <div class="story-blink" id="storyBlink"></div>
+</div>
 
 <script>
 /* ============================================================
@@ -716,7 +838,7 @@ const REWARD_POOLS = [
 ];
 
 const EVENT_POOLS = [
-  ['水塔维修日志', '特殊芯片'],
+  ['水塔维修日志', '损坏的卫星电话'],
   ['某户人家的日记', '家庭合照', '木雕', '拍立得', '雪地摩托钥匙'],
   ['圣经', '儿童画', '遗留的路线图']
 ];
@@ -742,10 +864,11 @@ const FOOD_EFFECTS = {
    ============================================================ */
 const RECIPES = {
   '瓶装水':   { materials: { '净水片': 1, '污水': 1 } },
+  '卫星电话': { materials: { '损坏的卫星电话': 1, '废弃铁料': 2, '电工胶带': 1} },
   '急救包':   { materials: { '绷带': 1, '酒精': 1 } },
-  '卫星电话': { materials: { '废弃铁料': 10, '电工胶带': 5 } },
   '青菜炒肉': { materials: { '肉': 1, '蔫了的蔬菜': 2, '打火机': 1 } },
   '自热火锅': { materials: { '肉': 1, '蔫了的蔬菜': 2, '暖宝宝': 1 } },
+
 };
 
 /* ============================================================
@@ -873,7 +996,8 @@ function saveGame() {
     isDead: isDead,
     collectedEvents: collectedEvents,
     weather: weather,
-    rollCount: rollCount
+    rollCount: rollCount,
+    storyProgress: storyProgress
   };
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -897,6 +1021,7 @@ function loadGame() {
     collectedEvents = data.collectedEvents || [[], [], []];
     weather = data.weather || 'sunny';
     rollCount = (typeof data.rollCount === 'number') ? data.rollCount : 0;
+    storyProgress = data.storyProgress || {};
     return true;
   } catch (e) {
     console.warn('读档失败：', e);
@@ -1140,21 +1265,35 @@ function updateStatusBars() {
 }
 
 function checkDeath() {
+  // 如果已经是死亡状态：确保界面处于死亡状态
   if (isDead) {
     rollBtn.disabled = true;
     document.getElementById('vignette').style.opacity = 0;
+    document.getElementById('blinkOverlay').style.opacity = 1;
     document.getElementById('deathOverlay').classList.add('show');
     return;
   }
+
+  // 刚触发死亡
   if (Math.ceil(hunger) <= 0 || Math.ceil(thirst) <= 0) {
     isDead = true;
     rollBtn.disabled = true;
     document.getElementById('vignette').style.opacity = 0;
-    const overlay = document.getElementById('deathOverlay');
-    overlay.classList.remove('show');
-    void overlay.offsetWidth;
-    overlay.classList.add('show');
-    saveGame();
+
+    // 播眨眼动画
+    const blink = document.getElementById('blinkOverlay');
+    blink.classList.remove('blink');
+    void blink.offsetWidth;      // 强制重排，让动画能重播
+    blink.classList.add('blink');
+
+    // 眨眼结束后显示死亡遮罩
+    setTimeout(() => {
+      const overlay = document.getElementById('deathOverlay');
+      overlay.classList.remove('show');
+      void overlay.offsetWidth;
+      overlay.classList.add('show');
+      saveGame();
+    }, 4500);   // 和动画时长 0.8s 保持一致
   }
 }
 
@@ -1193,10 +1332,26 @@ function showItem(name) {
   fallback.style.display = 'none';
   img.src = 'img/items/' + encodeURIComponent(name) + '.png';
 
-  document.getElementById('useItemBtn').style.display =
+  // 食物/水 → 显示「食用」
+  document.getElementById('eatItemBtn').style.display =
     FOOD_EFFECTS[name] ? 'flex' : 'none';
 
+  // 剧情道具 → 显示「使用」
+  document.getElementById('useItemBtn').style.display =
+    STORY_ITEMS[name] ? 'flex' : 'none';
+
   document.getElementById('itemModal').classList.add('show');
+}
+
+/* 使用剧情道具 */
+function useStoryItem() {
+  if (isDead) return;
+  const name = currentItemName;
+  if (!STORY_ITEMS[name]) return;
+
+  closeModal('itemModal');
+  closeModal('bagModal');
+  triggerStory(name);
 }
 
 function useCurrentItem() {
@@ -1297,6 +1452,10 @@ function craftFromWorkbench(name) {
    ============================================================ */
 function restartGame() {
   try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    // 重置眨眼遮罩
+  const blink = document.getElementById('blinkOverlay');
+  blink.classList.remove('blink');
+  blink.style.opacity = 0;
 
   currentBoardIndex = 0;
   playerPos = 0;
@@ -1309,6 +1468,8 @@ function restartGame() {
   collectedEvents = [[], [], []];
   weather = 'sunny';
   rollCount = 0;
+  storyProgress = {};
+  closeStory();
 
   document.getElementById('deathOverlay').classList.remove('show');
   rollBtn.disabled = false;
@@ -1324,6 +1485,283 @@ function restartGame() {
 }
 
 document.getElementById('restartBtn').onclick = restartGame;
+
+/* ============================================================
+   剧情系统
+   ============================================================ */
+const STORY_ITEMS = {
+  '卫星电话': {
+    intro: [
+      `你是在水塔第三层找到它的,这里是控制室。
+它被压在钻探队的工具底下，外壳结了一层薄冰。你把它抠出来的时候，手指冻得几乎没有知觉了。天线断了半截，你花了一些时间才把它修好。
+嘟——嘟——嘟——
+你蹲了下来，紧紧握着手里面的电话，听着那个声音穿透冰原。你不知道它会往哪里拨，也许是什么救援中心。电话终于被接通，你松了一口气。`,
+      `「格陵兰港口关闭 重复 格陵兰港口关闭」
+是自动广播，声音平稳，每隔几秒重复一次。背景里有细微的电流声，但你还听到了什么声音，很轻，像从某个教堂塔楼传过来的。
+「不要靠近港口 重复 不要靠近港口 」
+你张了张嘴，想说话，但广播不给你插话的空隙。它循环着，一遍，两遍，三遍。你开始意识到，这是给所有还能拨通这通电话的人听的。听着重复的播报，你心里感到有点烦闷。
+水塔的储水罐外层已经有点结冰，你盯着它看，想起水龙头里流出来的水，透明，冰凉，看起来就是很普通的水。你突然有想尝尝它的冲动。`,
+      `嘟——
+电话断了,广播消失。控制室安静下来。
+你蹲在原地，手机屏幕暗下去之前，你看见最后一行小字：
+「当前可探索区域：水塔」
+「下一区域解锁条件：完成本阶段打卡」`
+    ],
+    choices: [
+      { label: '继续求救', resultText: '你又拨通一次，女声重复着之前的话。电话的声音惊动了不该来的东西……' },
+      { label: '放弃求救', resultText: '你随手拿起锤子砸烂了电话，你不想再听到那个声音……' }
+    ]
+  }
+};
+
+let storyProgress = {};
+const STORY_BLINK_MS = 1200;
+const TYPING_SPEED = 55;
+
+let storyQueue = [];
+let storyIdx = 0;
+let storyFullText = '';
+let storyCharIdx = 0;
+let storyTyping = false;
+let storyTransitioning = false;
+let storyAfterAll = null;
+let storyCurrentName = null;
+let storyTypingTimer = null;
+
+// 累积已完成的文本
+let storyAccumulated = '';
+let storyPrefix = '';
+
+const storyOverlay = document.getElementById('storyOverlay');
+const storyTextEl = document.getElementById('storyText');
+const storyChoicesEl = document.getElementById('storyChoices');
+const storyBlinkEl = document.getElementById('storyBlink');
+
+/* 拆句：按 。！？； 和换行；过滤掉单独的 "——" 或 "---" 行 */
+function splitSentences(text) {
+  const cleaned = text.replace(/^[—\-]{2,}\s*$/gm, '').replace(/\n{2,}/g, '\n');
+  const regex = /[^。！？；\n]*[。！？；\n]+|[^。！？；\n]+/g;
+  return (cleaned.match(regex) || [])
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+}
+
+/* 把段落数组展平成句子队列 */
+function flattenToSentences(paragraphs) {
+  const result = [];
+  paragraphs.forEach(para => {
+    const sentences = splitSentences(para);
+    sentences.forEach((text, i) => {
+      result.push({
+        text,
+        isParagraphStart: i === 0
+      });
+    });
+  });
+  return result;
+}
+
+/* 触发剧情 */
+function triggerStory(name) {
+  const data = STORY_ITEMS[name];
+  if (!data) return;
+
+  storyCurrentName = name;
+  const progress = storyProgress[name] || 'unread';
+
+  if (progress === 'continued') {
+    storyQueue = flattenToSentences([data.choices[0].resultText]);
+    storyAfterAll = () => {
+      applyChoiceEffect(name, 0);
+      closeStory();
+    };
+  } else if (progress === 'destroyed') {
+    return;
+  } else {
+    storyQueue = flattenToSentences(data.intro);
+    storyAfterAll = () => showStoryChoices(name);
+  }
+
+  storyIdx = 0;
+  storyAccumulated = '';
+  storyPrefix = '';
+  storyTextEl.textContent = '';
+  storyChoicesEl.innerHTML = '';
+  storyChoicesEl.classList.remove('show');
+  storyOverlay.classList.add('show');
+  storyOverlay.scrollTop = 0;
+  playNextSentence();
+}
+
+/* 播放下一句 */
+function playNextSentence() {
+  if (storyIdx >= storyQueue.length) {
+    if (storyAfterAll) storyAfterAll();
+    return;
+  }
+
+  const s = storyQueue[storyIdx];
+  storyFullText = s.text;
+  storyCharIdx = 0;
+  storyTyping = true;
+
+  // 段落开头 → 清空重来；同段内 → 保留累积，加换行
+  if (s.isParagraphStart) {
+    storyAccumulated = '';
+    storyPrefix = '';
+    storyTextEl.textContent = '';
+  } else {
+    storyPrefix = storyAccumulated ? storyAccumulated + '\n' : '';
+  }
+
+  storyTextEl.textContent = storyPrefix;
+  clearTimeout(storyTypingTimer);
+  typingStep();
+}
+
+/* 逐字打印 */
+function typingStep() {
+  if (!storyTyping) return;
+  if (storyCharIdx >= storyFullText.length) {
+    storyTyping = false;
+    storyAccumulated = storyPrefix + storyFullText;
+    return;
+  }
+  storyCharIdx++;
+  storyTextEl.textContent = storyPrefix + storyFullText.slice(0, storyCharIdx);
+  storyTypingTimer = setTimeout(typingStep, TYPING_SPEED);
+}
+
+/* 点击遮罩 */
+function onStoryTap() {
+  if (!storyOverlay.classList.contains('show')) return;
+  if (storyTransitioning) return;
+  if (storyChoicesEl.classList.contains('show')) return;
+
+  if (storyTyping) {
+    // 补全当前句
+    storyTyping = false;
+    clearTimeout(storyTypingTimer);
+    storyTextEl.textContent = storyPrefix + storyFullText;
+    storyAccumulated = storyPrefix + storyFullText;
+    return;
+  }
+
+  advanceSentence();
+}
+
+/* 进入下一句 */
+function advanceSentence() {
+  if (storyIdx >= storyQueue.length - 1) {
+    if (storyAfterAll) storyAfterAll();
+    return;
+  }
+
+  const next = storyQueue[storyIdx + 1];
+  const needBlink = next.isParagraphStart;
+
+  if (needBlink) {
+    storyTransitioning = true;
+    storyBlinkEl.classList.remove('active');
+    void storyBlinkEl.offsetWidth;
+    storyBlinkEl.classList.add('active');
+
+    setTimeout(() => {
+      storyTransitioning = false;
+      storyIdx++;
+      playNextSentence();
+    }, STORY_BLINK_MS);
+  } else {
+    storyIdx++;
+    playNextSentence();
+  }
+}
+
+/* 显示选项 */
+function showStoryChoices(name) {
+  const data = STORY_ITEMS[name];
+  storyChoicesEl.innerHTML = data.choices.map((c, i) =>
+    `<button class="story-choice" onclick="event.stopPropagation(); selectStoryChoice(${i})">${c.label}</button>`
+  ).join('');
+  storyChoicesEl.classList.add('show');
+}
+
+/* 选择选项 */
+function selectStoryChoice(idx) {
+  const name = storyCurrentName;
+  const data = STORY_ITEMS[name];
+  const choice = data.choices[idx];
+
+  storyChoicesEl.classList.remove('show');
+  storyChoicesEl.innerHTML = '';
+
+  // 选中后清空、准备显示结果
+  const showResult = () => {
+    storyAccumulated = '';
+    storyPrefix = '';
+    storyTextEl.textContent = '';
+    storyQueue = flattenToSentences([choice.resultText]);
+    storyIdx = 0;
+    storyAfterAll = () => {
+      applyChoiceEffect(name, idx);
+      closeStory();
+    };
+    playNextSentence();
+  };
+
+  // 「卫星电话」的「继续求救」不眨眼，直接显示
+  const skipBlink = (name === '卫星电话' && idx === 0);
+
+  if (skipBlink) {
+    showResult();
+    return;
+  }
+
+  // 其他选项保持眨眼过渡
+  storyTransitioning = true;
+  storyBlinkEl.classList.remove('active');
+  void storyBlinkEl.offsetWidth;
+  storyBlinkEl.classList.add('active');
+
+  setTimeout(() => {
+    storyTransitioning = false;
+    showResult();
+  }, STORY_BLINK_MS);
+}
+
+/* 应用选项效果 */
+function applyChoiceEffect(name, idx) {
+  if (name === '卫星电话') {
+    if (idx === 0) {
+      hunger = Math.max(0, hunger - 10);
+      thirst = Math.max(0, thirst - 10);
+      storyProgress['卫星电话'] = 'continued';
+    } else if (idx === 1) {
+      delete inventory['卫星电话'];
+      inventory['废弃铁料'] = (inventory['废弃铁料'] || 0) + 5;
+      storyProgress['卫星电话'] = 'destroyed';
+    }
+    saveGame();
+    updateStatusBars();
+    checkDeath();
+  }
+}
+
+/* 关闭剧情 */
+function closeStory() {
+  storyOverlay.classList.remove('show');
+  storyChoicesEl.classList.remove('show');
+  storyChoicesEl.innerHTML = '';
+  storyTextEl.textContent = '';
+  storyCurrentName = null;
+  storyQueue = [];
+  storyIdx = 0;
+  storyAccumulated = '';
+  storyPrefix = '';
+}
+
+/* 绑定点击 */
+storyOverlay.addEventListener('click', onStoryTap);
 
 /* ============================================================
    启动
