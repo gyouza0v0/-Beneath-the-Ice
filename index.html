@@ -537,7 +537,17 @@
     .bar-icon { width: 24px; height: 24px; }
     .bar-num { font-size: 11px; min-width: 22px; }
     .death-text { font-size: 22px; letter-spacing: 4px; }
-    .recipe-list { grid-template-columns: repeat(2, 1fr); }
+
+    /* 制作格子：手机上取消正方形，改成高度自适应 */
+    .recipe-list { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .recipe-item {
+      aspect-ratio: auto;      /* ← 取消正方形 */
+      min-height: 90px;        /* ← 保证最小高度 */
+      padding: 5px;
+    }
+    .recipe-item .recipe-title { font-size: 11px; }
+    .recipe-item .recipe-mat   { font-size: 9px; }
+    .recipe-item .recipe-action { font-size: 10px; padding: 3px 4px; }
   }
 </style>
 </head>
