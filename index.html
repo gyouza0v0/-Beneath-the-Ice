@@ -1491,6 +1491,7 @@ document.getElementById('restartBtn').onclick = restartGame;
    ============================================================ */
 const STORY_ITEMS = {
   '卫星电话': {
+    blink: true,
     intro: [
       `你是在水塔第三层找到它的,这里是控制室。
 它被压在钻探队的工具底下，外壳结了一层薄冰。你把它抠出来的时候，手指冻得几乎没有知觉了。天线断了半截，你花了一些时间才把它修好。
@@ -1508,9 +1509,32 @@ const STORY_ITEMS = {
 「下一区域解锁条件：完成本阶段打卡」`
     ],
     choices: [
-      { label: '继续求救', resultText: '你又拨通一次，女声重复着之前的话。电话的声音惊动了不该来的东西……' },
-      { label: '放弃求救', resultText: '你随手拿起锤子砸烂了电话，你不想再听到那个声音……' }
+      { label: '继续求救', resultText: '你又拨通一次，女声重复着之前的话。电话的声音惊动了不该来的东西...' },
+      { label: '放弃求救', resultText: '你随手拿起锤子砸烂了电话，你不想再听到那个声音...' }
     ]
+  },
+  '水塔维修日志': {
+    blink: false,
+    intro: [
+      `单位：格陵兰冻土钻探队
+设备编号：BTI-01 储水罐及配套管线`,
+      `2029年9月14日 晴
+按计划清洗钻探设备，回收钻杆时发现第三段接头处有淤泥渗入，用清水冲掉了。
+储水罐例行检查，密封圈老化，B区接口有轻微渗漏。更换了密封圈，试压正常。清洗废水已经排入储水罐静置沉淀，计划明天再排空。
+——K`,
+      `2029年9月15日 阴
+排空储水罐时发现罐底有残留物，黏稠得不像普通淤泥。我用取样瓶装了一瓶，放在了工具间架子上。
+密封区没问题，下午照常供水。罐里水很清，也没异味，化验试纸各项都正常。
+——K`,
+      `2029年9月16日 雪
+昨晚工具间取样瓶自己裂了，玻璃渣一地，样本没了。地上只剩一滩黑水，擦干净了。
+C区接口渗漏加重，先用胶带缠了。供水没停，大家还要用。
+早上L说水有股铁锈味，我尝了一口，没尝出来。
+罐体压力表指针有轻微抖动。
+——K`,
+      `日志到此中断了...`
+    ],
+    choices: []
   }
 };
 
@@ -1527,6 +1551,7 @@ let storyTransitioning = false;
 let storyAfterAll = null;
 let storyCurrentName = null;
 let storyTypingTimer = null;
+let storyBlinkEnabled = true;
 
 // 累积已完成的文本
 let storyAccumulated = '';
@@ -1567,6 +1592,7 @@ function triggerStory(name) {
   if (!data) return;
 
   storyCurrentName = name;
+  storyBlinkEnabled = data.blink !== false;   // 默认 true
   const progress = storyProgress[name] || 'unread';
 
   if (progress === 'continued') {
@@ -1588,6 +1614,10 @@ function triggerStory(name) {
   storyTextEl.textContent = '';
   storyChoicesEl.innerHTML = '';
   storyChoicesEl.classList.remove('show');
+
+  // 确保眨眼 class 是干净的
+  storyBlinkEl.classList.remove('active');
+
   storyOverlay.classList.add('show');
   storyOverlay.scrollTop = 0;
   playNextSentence();
@@ -1658,7 +1688,7 @@ function advanceSentence() {
   }
 
   const next = storyQueue[storyIdx + 1];
-  const needBlink = next.isParagraphStart;
+  const needBlink = next.isParagraphStart && storyBlinkEnabled;
 
   if (needBlink) {
     storyTransitioning = true;
@@ -1680,6 +1710,13 @@ function advanceSentence() {
 /* 显示选项 */
 function showStoryChoices(name) {
   const data = STORY_ITEMS[name];
+
+  // 没有选项（支线纯文本）→ 直接关闭
+  if (!data.choices || data.choices.length === 0) {
+    closeStory();
+    return;
+  }
+
   storyChoicesEl.innerHTML = data.choices.map((c, i) =>
     `<button class="story-choice" onclick="event.stopPropagation(); selectStoryChoice(${i})">${c.label}</button>`
   ).join('');
@@ -1758,6 +1795,8 @@ function closeStory() {
   storyIdx = 0;
   storyAccumulated = '';
   storyPrefix = '';
+  // 清理眨眼 class，避免下次打开时重新播放
+  storyBlinkEl.classList.remove('active');
 }
 
 /* 绑定点击 */
